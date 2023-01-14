@@ -53,9 +53,12 @@ private:
      * @param div current divergence array (as lcp array)
      * @return the new naive column
      */
-    rl_column build_column(std::string &column,
-                           std::vector<unsigned int> &pref,
-                           sdsl::int_vector<> &div) {
+//    rl_column build_column(std::string &column,
+//                           std::vector<unsigned int> &pref,
+//                           sdsl::int_vector<> &div) {
+        rl_column build_column(std::string &column,
+                               std::vector<unsigned int> &pref,
+                               std::vector<unsigned int> &div) {
         //unsigned int height = pref.size();
         // variable for "c" value
         unsigned int count0 = 0;
@@ -212,16 +215,20 @@ private:
      * @param pref current prefix array
      * @param div current divergence array (as lcp array)
      */
+//    static void update(std::string &column, std::vector<unsigned int> &pref,
+//                       sdsl::int_vector<> &div) {
     static void update(std::string &column, std::vector<unsigned int> &pref,
-                       sdsl::int_vector<> &div) {
+                       std::vector<unsigned int> &div) {
         unsigned int height = pref.size();
         std::vector<unsigned int> new_pref(height);
-        sdsl::int_vector<> new_div(height);
+        //sdsl::int_vector<> new_div(height);
+        std::vector<unsigned int> new_div(height);
         unsigned int count0 = 0;
         unsigned int lcs = -1;
 
         for (unsigned int i = 0; i < height; i++) {
-            lcs = std::min(lcs, static_cast<unsigned int>(div[i]));
+            //lcs = std::min(lcs, static_cast<unsigned int>(div[i]));
+            lcs = std::min(lcs, div[i]);
             if (column[pref[i]] == '0') {
                 new_pref[count0] = pref[i];
                 new_div[count0] = lcs + 1;
@@ -233,7 +240,8 @@ private:
         int count1 = 0;
         lcs = -1;
         for (unsigned int i = 0; i < height; i++) {
-            lcs = std::min(lcs, static_cast<unsigned int>(div[i]));
+            //lcs = std::min(lcs, static_cast<unsigned int>(div[i]));
+            lcs = std::min(lcs, div[i]);
             if (column[pref[i]] == '1') {
                 new_pref[count0 + count1] = pref[i];
                 new_div[count0 + count1] = lcs + 1;
@@ -693,7 +701,8 @@ public:
                 input_matrix.seekg(0, std::ios::beg);
                 this->cols = std::vector<rl_column>(tmp_width + 1);
                 std::vector<unsigned int> pref(tmp_height);
-                sdsl::int_vector<> div(tmp_height);
+                //sdsl::int_vector<> div(tmp_height);
+                std::vector<unsigned int> div(tmp_height);
                 this->last_pref.resize(tmp_height);
                 this->last_div.resize(tmp_height);
                 for (unsigned int i = 0; i < tmp_height; i++) {
@@ -770,8 +779,10 @@ public:
             //this->cols = std::vector<rl_column>(this->width + 1);
             std::vector<unsigned int>
                     pref(this->height);
-            sdsl::int_vector<>
+            std::vector<unsigned int>
                     div(this->height);
+//            sdsl::int_vector<>
+//                    div(this->height);
 
             this->last_pref.resize(this->height);
             this->last_div.resize(this->height);
@@ -822,7 +833,7 @@ public:
                 count++;
             }
             std::cout << std::endl;
-            std::cout << "Total sites: " << this->height << "\n";
+            std::cout << "Total sites: " << this->width << "\n";
             for (unsigned int i = 0; i < pref.size(); i++) {
                 this->last_pref[i] = pref[i];
                 this->last_div[i] = div[i];
