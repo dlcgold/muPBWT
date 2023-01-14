@@ -32,7 +32,7 @@ public:
     /**
      * @brief vector of matcing statistics supported naive columns
      */
-    std::vector<rl_column> cols;
+    std::vector <rl_column> cols;
 
     /**
      * @brief phi/phi_inv support data structure
@@ -56,9 +56,9 @@ private:
 //    rl_column build_column(std::string &column,
 //                           std::vector<unsigned int> &pref,
 //                           sdsl::int_vector<> &div) {
-        rl_column build_column(std::string &column,
-                               std::vector<unsigned int> &pref,
-                               std::vector<unsigned int> &div) {
+    rl_column build_column(std::string &column,
+                           std::vector<unsigned int> &pref,
+                           std::vector<unsigned int> &div) {
         //unsigned int height = pref.size();
         // variable for "c" value
         unsigned int count0 = 0;
@@ -86,10 +86,10 @@ private:
 
         // initialize a vector of pair in order to build final sdsl int_vector
         // for p and u/v
-        std::vector<std::pair<unsigned int, unsigned int>> rows;
+        std::vector <std::pair<unsigned int, unsigned int>> rows;
         std::vector<unsigned int> thr;
         // support vector to store prefix array samples
-        std::vector<std::pair<unsigned int, unsigned int>> samples;
+        std::vector <std::pair<unsigned int, unsigned int>> samples;
         std::vector<unsigned int> samples_lcp;
 
         // temporary variable for p
@@ -495,54 +495,17 @@ private:
             bool check_down = true;
             unsigned int down_row = 0;
             bool check_up = true;
+            unsigned int up_row = 0;
+
             char curr_s = get_next_char(this->cols[curr_col].zero_first,
                                         index_to_run(ms_supp[curr_col],
                                                      curr_col));
-            unsigned int up_row = 0;
-            //unsigned int curr_index = ms_supp[curr_col];
-            unsigned int curr_tmp = ms_supp[curr_col];
-//            auto i_r = index_to_run(ms_supp[curr_col], curr_col);
-//            auto b_r = this->cols[curr_col].p[i_r];
-//            auto e_r = this->cols[curr_col].p[i_r + 1] - 1;
-//            if (i_r == this->cols[curr_col].p.size()) {
-//                e_r = this->height - 1;
-//            } else {
-//                e_r = this->cols[curr_col].p[i_r + 1] - 1;
-//            }
-
             unsigned int down_index =
                     lf(curr_col, ms_supp[curr_col], curr_s) + 1;
             unsigned int up_index = lf(curr_col, ms_supp[curr_col], curr_s);
-            //down_index = reverse_lf(curr_col + 1, down_index, false);
-            //unsigned int down_index = ms_supp[curr_col] + 1;
-            //unsigned int up_index = ms_supp[curr_col];
-
-            unsigned int tmp_col = curr_col;
             // go down/up and add row that has a lce of at least current len in
             // matching statistics (if panel is not saved as SLP the computation
             // of lce is simulated with random access to the panel)
-//            std::vector<char> ref(curr_len);
-//
-//            unsigned int start = 0;
-//            if ((int) tmp_col - ((int) curr_len - 1) >= 0) {
-//                start = tmp_col - (curr_len - 1);
-//            }
-//            auto pos = ref.size() - 1;
-//            for (unsigned int j = tmp_col; j >= start; j--) {
-//
-//                if (j >= 0) {
-//                    ref[pos] = get_next_char(this->cols[j].zero_first,
-//                                             index_to_run(curr_tmp, j));
-//
-//
-//                    curr_tmp = reverse_lf(j, curr_tmp, false);
-//
-//                    pos--;
-//                }
-//                if (j == 0) {
-//                    break;
-//                }
-//            }
 
             // down
             while (check_down) {
@@ -556,7 +519,7 @@ private:
                 //std::cout << "check d: " << down_row << " " << down_index << " " << curr_col << " " << start_row << "\n";
                 //std::cout << curr_len << " "
                 //          << this->phi->plcp(down_row, curr_col) << "\n";
-                if (this->phi->plcp(down_row, curr_col+1) >= curr_len ) {
+                if (this->phi->plcp(down_row, curr_col + 1) >= curr_len) {
                     haplos.emplace_back(down_row);
                     start_row = down_row;
                 } else {
@@ -582,7 +545,7 @@ private:
 //                    break;
 //                }
 
-                if (this->phi->plcp(start_row, curr_col+1) >= curr_len ) {
+                if (this->phi->plcp(start_row, curr_col + 1) >= curr_len) {
                     haplos.emplace_back(up_row);
                     start_row = up_row;
                 } else {
@@ -597,36 +560,36 @@ private:
         }
     }
 
-    bool check_extend(unsigned int col, std::vector<char> f_r,
-                      unsigned int s_r,
-                      unsigned int length) const {
-        unsigned int start = 0;
-        if ((int) col - ((int) length - 1) >= 0) {
-            start = col - (length - 1);
-        }
-        auto size = f_r.size();
-        bool check = true;
-        unsigned int end = f_r.size() - 1;
-        s_r = reverse_lf(col + 1, s_r, false);
-        for (unsigned int i = col; i >= start; i--) {
-            if (i >= 0) {
-                char s = get_next_char(this->cols[i].zero_first,
-                                       index_to_run(s_r, i));
-                if (f_r[end] != s) {
-                    check = false;
-                    break;
-                }
-
-                s_r = reverse_lf(i, s_r, false);
-
-                end--;
-            }
-            if (i == 0) {
-                break;
-            }
-        }
-        return check;
-    }
+//    bool check_extend(unsigned int col, std::vector<char> f_r,
+//                      unsigned int s_r,
+//                      unsigned int length) const {
+//        unsigned int start = 0;
+//        if ((int) col - ((int) length - 1) >= 0) {
+//            start = col - (length - 1);
+//        }
+//        auto size = f_r.size();
+//        bool check = true;
+//        unsigned int end = f_r.size() - 1;
+//        s_r = reverse_lf(col + 1, s_r, false);
+//        for (unsigned int i = col; i >= start; i--) {
+//            if (i >= 0) {
+//                char s = get_next_char(this->cols[i].zero_first,
+//                                       index_to_run(s_r, i));
+//                if (f_r[end] != s) {
+//                    check = false;
+//                    break;
+//                }
+//
+//                s_r = reverse_lf(i, s_r, false);
+//
+//                end--;
+//            }
+//            if (i == 0) {
+//                break;
+//            }
+//        }
+//        return check;
+//    }
 
 
 public:
@@ -1175,7 +1138,7 @@ public:
                 std::string new_column;
                 getline(input_matrix, line);
                 getline(input_matrix, line);
-                std::vector<std::string> queries_panel;
+                std::vector <std::string> queries_panel;
                 while (getline(input_matrix, line) && !line.empty()) {
                     std::istringstream is_col(line);
                     is_col >> garbage;
@@ -1187,7 +1150,7 @@ public:
                 }
                 input_matrix.close();
                 std::string query;
-                std::vector<std::string> queries;
+                std::vector <std::string> queries;
                 if (out_match.is_open()) {
                     for (unsigned int i = 0;
                          i < queries_panel[0].size(); i++) {
@@ -1202,7 +1165,7 @@ public:
                     }
 
                     auto n_queries = queries.size();
-                    std::vector<ms_matches> matches_vec(n_queries);
+                    std::vector <ms_matches> matches_vec(n_queries);
 #pragma omp parallel for default(none) \
     shared(queries, matches_vec, n_queries, extend_matches, verbose)
                     for (unsigned int i = 0; i < n_queries; i++) {
@@ -1267,7 +1230,7 @@ public:
 
             bcf_hdr_t *hdr = bcf_hdr_read(fp);
             bcf1_t *rec = bcf_init();
-            std::vector<std::string> queries_panel;
+            std::vector <std::string> queries_panel;
             std::string new_column;
             while (bcf_read(fp, hdr, rec) >= 0) {
                 new_column = "";
@@ -1298,7 +1261,7 @@ public:
             hts_close(fp);
             bcf_destroy(rec);
             std::string query;
-            std::vector<std::string> queries;
+            std::vector <std::string> queries;
             if (out_match.is_open()) {
                 for (unsigned int i = 0; i < queries_panel[0].size(); i++) {
                     if (verbose) {
@@ -1313,7 +1276,7 @@ public:
 
                 auto n_queries = queries.size();
 
-                std::vector<ms_matches> matches_vec(n_queries);
+                std::vector <ms_matches> matches_vec(n_queries);
 
 #pragma omp parallel for default(none) \
     shared(queries, matches_vec, n_queries, extend_matches, verbose)
