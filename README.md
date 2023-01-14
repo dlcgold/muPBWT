@@ -10,10 +10,9 @@ cmake --build build
 ## Usage
 ```
 cd build
-./repbwt [options]
 ```
 ```
-Usage: RLPBWT [options]
+Usage: ./rePBWT [options]
 
 Options:
   -i, --input_file <path>	 macs file for panel
@@ -28,7 +27,7 @@ Options:
   -h, --help	 show this help message and exit
 ```
 
-example using RLPBWT (slp mode) with lce queries and matches extended:
+example using rePBWT (slp mode) with lce queries and matches extended:
 
 ```
 ./repbwt -i <input matrix> -m <serialization file> -e -b
