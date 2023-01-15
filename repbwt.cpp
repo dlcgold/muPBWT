@@ -16,9 +16,9 @@ void printHelp() {
 //              << std::endl;
     std::cout << "  -m, --macs\t use macs format for panel and queries"
               << std::endl;
-    std::cout << "  -v, --verbose\t extra prints" << std::endl;
-    std::cout << "  -V, --fverbose\t extra prints for functions (cautions)"
+    std::cout << "  -d, --details\t print memory usage details"
               << std::endl;
+    std::cout << "  -v, --verbose\t extra prints" << std::endl;
     std::cout << "  -h, --help\t show this help message and exit" << std::endl;
 }
 
@@ -29,8 +29,7 @@ int main(int argc, char **argv) {
         exit(EXIT_SUCCESS);
     }
     bool verbose = false;
-    bool print_verbose = false;
-    //bool extend = true;
+    bool details = false;
     bool query = false;
     bool macs = false;
     std::string matrix_input = "";
@@ -42,20 +41,20 @@ int main(int argc, char **argv) {
 
     while (true) {
         static struct option long_options[] = {
-                {"input",    required_argument, nullptr, 'i'},
-                {"save",     required_argument, nullptr, 's'},
-                {"load",     required_argument, nullptr, 'l'},
-                {"output",   required_argument, nullptr, 'o'},
-                {"query",    required_argument, nullptr, 'q'},
+                {"input",   required_argument, nullptr, 'i'},
+                {"save",    required_argument, nullptr, 's'},
+                {"load",    required_argument, nullptr, 'l'},
+                {"output",  required_argument, nullptr, 'o'},
+                {"query",   required_argument, nullptr, 'q'},
                 //{"extend",   no_argument,       nullptr, 'e'},
-                {"macs",     no_argument,       nullptr, 'm'},
-                {"fverbose", no_argument,       nullptr, 'V'},
-                {"verbose",  no_argument,       nullptr, 'v'},
-                {"help",     no_argument,       nullptr, 'h'},
-                {nullptr,    0,                 nullptr, 0}};
+                {"macs",    no_argument,       nullptr, 'm'},
+                {"details", no_argument,       nullptr, 'd'},
+                {"verbose", no_argument,       nullptr, 'v'},
+                {"help",    no_argument,       nullptr, 'h'},
+                {nullptr,   0,                 nullptr, 0}};
 
         int option_index = 0;
-        c = getopt_long(argc, argv, "i:s:l:o:q:emvVh", long_options,
+        c = getopt_long(argc, argv, "i:s:l:o:q:emvdh", long_options,
                         &option_index);
 
         if (c == -1) {
@@ -81,10 +80,10 @@ int main(int argc, char **argv) {
             case 'm':
                 macs = true;
                 break;
-            case 'v':
-                print_verbose = true;
+            case 'd':
+                details = true;
                 break;
-            case 'V':
+            case 'v':
                 verbose = true;
                 break;
             case 'h':
@@ -99,10 +98,16 @@ int main(int argc, char **argv) {
     if (!query_input.empty()) {
         query = true;
     }
-    if (memorize_file.empty() && (query_input.empty() || output.empty())) {
-        std::cerr << "Error: nothing to do\n";
-        printHelp();
+    if (matrix_input.empty() && load_file.empty()) {
+        std::cerr << "Error: input or load file required\n";
         exit(EXIT_FAILURE);
+    }
+    if (memorize_file.empty() && (query_input.empty() || output.empty())) {
+        if (!details) {
+            std::cerr << "Error: nothing to do\n";
+            printHelp();
+            exit(EXIT_FAILURE);
+        }
     }
     if (query && output.empty()) {
         std::cerr << "Error: output file required if query requested\n";
@@ -110,11 +115,6 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
-
-    if (matrix_input.empty() && load_file.empty()) {
-        std::cerr << "Error: input or load file required\n";
-        exit(EXIT_FAILURE);
-    }
 
     if (query) {
         if (output.empty()) {
@@ -138,19 +138,22 @@ int main(int argc, char **argv) {
             rlpbwt.serialize(outstream);
             outstream.close();
         }
+
         auto time_build = (float) (clock() - START) / CLOCKS_PER_SEC;
-        if (print_verbose) {
-            std::cout << "rlpbwt: " << rlpbwt.size_in_bytes(verbose)
-                      << " bytes\n";
-            std::cout
-                    << "rlpbwt: " << rlpbwt.size_in_mega_bytes(verbose)
-                    << " megabytes\n----\n";
+        std::cout << "built/loaded in: " << time_build << " s\n";
+        if (details) {
+            auto runs = rlpbwt.get_run_number();
+
+            std::cout << "\n----\nTotal runs: " << runs << "\n----\n";
+            std::cout << "Average runs: " << std::ceil(runs / rlpbwt.width)
+                      << "\n";
+            auto s = rlpbwt.size_in_mega_bytes(true);
+            std::cout << "rlpbwt: " << s << " megabytes\n----\n";
             std::cout
                     << "estimated dense size: "
                     << dense_size_megabyte(rlpbwt.height, rlpbwt.width)
                     << " megabytes\n----\n";
         }
-        std::cout << "built/loaded in: " << time_build << " s\n";
         if (query) {
             std::cout << "start querying \n";
             START = clock();
@@ -167,19 +170,22 @@ int main(int argc, char **argv) {
         load.open(load_file.c_str());
         rlpbwt.load(load);
         load.close();
+
         auto time_build = (float) (clock() - START) / CLOCKS_PER_SEC;
-        if (print_verbose) {
-            std::cout << "rlpbwt: " << rlpbwt.size_in_bytes(verbose)
-                      << " bytes\n";
-            std::cout
-                    << "rlpbwt: " << rlpbwt.size_in_mega_bytes(verbose)
-                    << " megabytes\n----\n";
+
+        std::cout << "built/loaded in: " << time_build << " s\n";
+        if (details) {
+            auto runs = rlpbwt.get_run_number();
+            std::cout << "\n----\nTotal runs: " << runs << "\n";
+            std::cout << "Average runs: " << std::ceil(runs / rlpbwt.width)
+                      << "\n----\n";
+            auto s = rlpbwt.size_in_mega_bytes(true);
+            std::cout << "rlpbwt: " << s << " megabytes\n----\n";
             std::cout
                     << "estimated dense size: "
                     << dense_size_megabyte(rlpbwt.height, rlpbwt.width)
                     << " megabytes\n----\n";
         }
-        std::cout << "built/loaded in: " << time_build << " s\n";
         if (query) {
             std::cout << "start querying \n";
             START = clock();

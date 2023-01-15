@@ -377,20 +377,24 @@ public:
      * @return size in megabytes
      */
     double size_in_mega_bytes(bool verbose = false) {
-        double size = 0;
+        double size_panels = 0;
+        double size_supp = 0;
         for (unsigned int i = 0; i < this->phi_vec.size(); ++i) {
-            size += sdsl::size_in_mega_bytes(phi_vec[i]);
-            size += sdsl::size_in_mega_bytes(phi_inv_vec[i]);
-            size += sdsl::size_in_mega_bytes(phi_rank[i]);
-            size += sdsl::size_in_mega_bytes(phi_select[i]);
-            size += sdsl::size_in_mega_bytes(phi_inv_rank[i]);
-            size += sdsl::size_in_mega_bytes(phi_inv_select[i]);
-            size += sdsl::size_in_mega_bytes(phi_supp[i]);
-            size += sdsl::size_in_mega_bytes(phi_inv_supp[i]);
-            size += sdsl::size_in_mega_bytes(phi_supp_l[i]);
+            size_panels += sdsl::size_in_mega_bytes(phi_vec[i]);
+            size_panels += sdsl::size_in_mega_bytes(phi_inv_vec[i]);
+            size_panels += sdsl::size_in_mega_bytes(phi_rank[i]);
+            size_panels += sdsl::size_in_mega_bytes(phi_select[i]);
+            size_panels += sdsl::size_in_mega_bytes(phi_inv_rank[i]);
+            size_panels += sdsl::size_in_mega_bytes(phi_inv_select[i]);
+            size_supp += sdsl::size_in_mega_bytes(phi_supp[i]);
+            size_supp += sdsl::size_in_mega_bytes(phi_inv_supp[i]);
+            size_supp += sdsl::size_in_mega_bytes(phi_supp_l[i]);
         }
+        double size = size_panels + size_supp;
         if (verbose) {
-            std::cout << "phi support: " << size << " megabytes\n";
+            std::cout << "phi panels: " << size_panels << " megabytes\n";
+            std::cout << "phi support: " << size_supp << " megabytes\n";
+            std::cout << "phi data structure (panels + support): " << size << " megabytes\n";
         }
         return size;
     }
