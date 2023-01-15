@@ -22,7 +22,7 @@ Options:
   -q, --query <path>	 path to query file
   -m, --macs	use macs as file format for both input and query file
   -v, --verbose	 extra prints
-  -V, --fverbose	 extra prints for functions (cautions)
+  -d, --details	 print memory usage details
   -h, --help	 show this help message and exit
 ```
 
@@ -30,5 +30,6 @@ example using rePBWT (slp mode) with lce queries and matches extended:
 
 ```
 ./repbwt -i <input matrix> -s <serialization file>
-./repbwt -l <serialization file> -o <output file> -q <query file>```
+./repbwt -l <serialization file> -o <output file> -q <query file>
+```
 
