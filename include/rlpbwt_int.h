@@ -1606,23 +1606,24 @@ public:
             size_uv += sdsl::size_in_mega_bytes(this->cols[i].uv);
             size_samples +=
                     sdsl::size_in_mega_bytes(this->cols[i].sample_beg) +
-                    sdsl::size_in_mega_bytes(this->cols[i].sample_end);
+                    sdsl::size_in_mega_bytes(this->cols[i].sample_end) +
+                    sdsl::size_in_mega_bytes(this->cols[i].sample_beg_lcp);
         }
+        size += (sizeof(bool) * 2 * to_mega);
+        size += (sizeof(unsigned int) * 2 * to_mega);
         if (verbose) {
             std::cout << "run: " << size_run << " megabytes\n";
             std::cout << "thr: " << size_thr << " megabytes\n";
             std::cout << "uv: " << size_uv << " megabytes\n";
             std::cout << "samples: " << size_samples << " megabytes\n";
             std::cout
-                    << "rlpbwt (with also c values and other support variables): "
+                    << "rlpbwt (mapping): "
                     << size << " megabytes\n";
         }
-        size += (sizeof(bool) * 2 * to_mega);
-        size += (sizeof(unsigned int) * 2 * to_mega);
+
         if (this->is_extended) {
             auto size_phi = this->phi->size_in_mega_bytes(verbose);
             size += size_phi;
-            // std::cout << "phi support: " << size_phi << " megabytes\n";
         }
         return size;
     }
