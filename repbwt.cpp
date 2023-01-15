@@ -143,8 +143,9 @@ int main(int argc, char **argv) {
         std::cout << "built/loaded in: " << time_build << " s\n";
         if (details) {
             auto runs = rlpbwt.get_run_number();
-
-            std::cout << "\n----\nTotal runs: " << runs << "\n----\n";
+            std::cout << "\n----\nTotal haplotypes: " << rlpbwt.height << "\n";
+            std::cout << "Total sites: " << rlpbwt.width << "\n";
+            std::cout << "----\nTotal runs: " << runs << "\n----\n";
             std::cout << "Average runs: " << std::ceil(runs / rlpbwt.width)
                       << "\n";
             auto s = rlpbwt.size_in_mega_bytes(true);
@@ -176,7 +177,9 @@ int main(int argc, char **argv) {
         std::cout << "built/loaded in: " << time_build << " s\n";
         if (details) {
             auto runs = rlpbwt.get_run_number();
-            std::cout << "\n----\nTotal runs: " << runs << "\n";
+            std::cout << "\n----\nTotal haplotypes: " << rlpbwt.height << "\n";
+            std::cout << "Total sites: " << rlpbwt.width << "\n";
+            std::cout << "----\nTotal runs: " << runs << "\n";
             std::cout << "Average runs: " << std::ceil(runs / rlpbwt.width)
                       << "\n----\n";
             auto s = rlpbwt.size_in_mega_bytes(true);
