@@ -19,3 +19,7 @@ char get_next_char(bool zero_first, unsigned int index_run) {
         }
     }
 }
+
+constexpr uint8_t bit_size(unsigned int value) {
+    return static_cast<uint8_t>(std::floor(std::log(value)) + 1);
+}

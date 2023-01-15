@@ -8,10 +8,41 @@
 #include <string>
 #include <vector>
 #include <sdsl/config.hpp>
+#include <sdsl/util.hpp>
 #include <sdsl/structure_tree.hpp>
 #include <sdsl/io.hpp>
 #include <sdsl/int_vector.hpp>
 #include <climits>
+
+
+class intv {
+public:
+    int size;
+    int capacity;
+    //sdsl::int_vector<t_width> v;
+    sdsl::int_vector<> v;
+    intv(){
+        size = 0;
+        capacity = 0;
+//        v.resize(1);
+//        v[0]=max_value;
+//        sdsl::util::bit_compress(v);
+//        v.resize(0);
+    }
+
+    void push_back(const unsigned long int &x) {
+        if (size == capacity) {
+            capacity = size * 2 + 1;
+            v.resize(capacity);
+        }
+        v[size++] = x;
+    }
+
+    void compress(){
+        v.resize(size);
+        sdsl::util::bit_compress(v);
+    }
+};
 
 /**
  * @brief function to get the char (in bialleic case with 0 and 1) at certain
@@ -21,6 +52,8 @@
  * @return the char at the queried run
  */
 char get_next_char(bool zero_first, unsigned int index_run);
+
+constexpr uint8_t bit_size(unsigned int value);
 
 template<typename T>
 double vectorsizeof(const typename std::vector<T> &vec) {
@@ -77,7 +110,7 @@ my_serialize_array(const T *p, const size_type size, std::ostream &out,
 // specialization for fundamental types
 template<class T>
 uint64_t
-my_serialize_vector(const std::vector<T> &vec, std::ostream &out,
+my_serialize_vector(const std::vector <T> &vec, std::ostream &out,
                     sdsl::structure_tree_node *v, const std::string &name,
                     typename std::enable_if<std::is_fundamental<T>::value>::type * = 0) {
     if (!vec.empty()) {
@@ -116,7 +149,7 @@ my_serialize_vector(const std::vector<T> &vec, std::ostream &out,
  */
 template<typename X>
 uint64_t
-my_serialize(const std::vector<X> &x,
+my_serialize(const std::vector <X> &x,
              std::ostream &out, sdsl::structure_tree_node *v = nullptr,
              std::string name = "",
              typename std::enable_if<std::is_fundamental<X>::value>::type * = 0) {
@@ -153,7 +186,7 @@ void my_load_array(T *p, const size_type size, std::istream &in,
  *   of its elements.
  */
 template<class T>
-void my_load_vector(std::vector<T> &vec, std::istream &in,
+void my_load_vector(std::vector <T> &vec, std::istream &in,
                     typename std::enable_if<std::is_fundamental<T>::value>::type * = 0) {
     T *p = &vec[0];
     typename std::vector<T>::size_type idx = 0;
@@ -172,7 +205,7 @@ void my_load_vector(std::vector<T> &vec, std::istream &in,
  * @param in std::istream object from which load the data
  */
 template<typename X>
-void my_load(std::vector<X> &x, std::istream &in,
+void my_load(std::vector <X> &x, std::istream &in,
              typename std::enable_if<std::is_fundamental<X>::value>::type * = 0) {
     typename std::vector<X>::size_type size;
     sdsl::load(size, in);
