@@ -58,7 +58,10 @@ private:
 //                           sdsl::int_vector<> &div) {
     rl_column build_column(std::string &column,
                            std::vector<unsigned int> &pref,
-                           std::vector<unsigned int> &div) {
+                           std::vector<unsigned int> &div,
+                           std::vector <intv> &supp_b,
+                           std::vector <intv> &supp_e,
+                           unsigned int col_i = 0) {
         //unsigned int height = pref.size();
         // variable for "c" value
         unsigned int count0 = 0;
@@ -197,6 +200,9 @@ private:
             sb_vec[i] = samples[i].first;
             se_vec[i] = samples[i].second;
             sbl_vec[i] = samples_lcp[i];
+            supp_b[samples[i].first].push_back(col_i);
+            supp_e[samples[i].second].push_back(col_i);
+            //supp_l[samples_lcp[i]].push_back(count);
         }
         sdsl::util::bit_compress(p_vec);
         sdsl::util::bit_compress(uv_vec);
@@ -625,8 +631,8 @@ public:
      */
     explicit rlpbwt_int(const char *filename,
                         bool verbose = false,
-                        bool vcf = false) {
-        if (!vcf) {
+                        bool macs = false) {
+        if (macs) {
             std::ifstream input_matrix(filename);
             if (input_matrix.is_open()) {
                 std::string header1;
@@ -643,31 +649,33 @@ public:
                 is >> garbage >> garbage >> garbage >> garbage
                    >> new_column;
                 unsigned int tmp_height = new_column.size();
-                std::cout << "h: " << tmp_height << "\n";
+                std::cout << "Total samples: " << tmp_height << "\n";
                 /*unsigned int tmp_width = std::count(
                         std::istreambuf_iterator<char>(input_matrix),
                         std::istreambuf_iterator<char>(), '\n');
                         */
-                auto tmp_width = 1;
-                while (getline(input_matrix, line) && !line.empty()) {
-                    std::istringstream is_col(line);
-                    is_col >> garbage;
-                    if (garbage == "TOTAL_SAMPLES:") {
-                        break;
-                    }
-                    tmp_width++;
-                }
-                std::cout << "w: " << tmp_width << "\n";
-                this->width = tmp_width;
+                //auto tmp_width = 1;
+//                while (getline(input_matrix, line) && !line.empty()) {
+//                    std::istringstream is_col(line);
+//                    is_col >> garbage;
+//                    if (garbage == "TOTAL_SAMPLES:") {
+//                        break;
+//                    }
+//                    tmp_width++;
+//                }
+//                std::cout << "w: " << tmp_width << "\n";
+                this->width = 0;
                 this->height = tmp_height;
                 input_matrix.clear();
                 input_matrix.seekg(0, std::ios::beg);
-                this->cols = std::vector<rl_column>(tmp_width + 1);
+                //this->cols = std::vector<rl_column>(tmp_width + 1);
                 std::vector<unsigned int> pref(tmp_height);
                 //sdsl::int_vector<> div(tmp_height);
                 std::vector<unsigned int> div(tmp_height);
                 this->last_pref.resize(tmp_height);
                 this->last_div.resize(tmp_height);
+                auto supp_b = std::vector<intv>(this->height);
+                auto supp_e = std::vector<intv>(this->height);
                 for (unsigned int i = 0; i < tmp_height; i++) {
                     pref[i] = i;
                     div[i] = 0;
@@ -691,11 +699,11 @@ public:
                                   << this->cols[count]
                                   << "\n-------------------------------\n";
                     }
-                    auto col =
-                            rlpbwt_int::build_column(new_column, pref,
-                                                     div);
-
-                    this->cols[count] = col;
+                    auto col = rlpbwt_int::build_column(new_column, pref,
+                                                        div, supp_b, supp_e,
+                                                        count);
+                    //this->cols[count] = col;
+                    this->cols.emplace_back(col);
                     rlpbwt_int::update(new_column, pref, div);
                     last_col = new_column;
                     count++;
@@ -704,13 +712,32 @@ public:
                     this->last_pref[i] = pref[i];
                     this->last_div[i] = div[i];
                 }
-
-                auto col = rlpbwt_int::build_column(last_col, pref,
-                                                    div);
-                this->cols[count] = col;
+                std::cout << std::endl;
+                this->width = cols.size();
+                std::cout << "Total sites: " << this->width << "\n";
+                auto col = rlpbwt_int::build_column(last_col, pref, div, supp_b,
+                                                    supp_e, count);
+                //this->cols[count] = col;
+                this->cols.emplace_back(col);
+                for (unsigned int i = 0; i < this->height; i++) {
+                    if (supp_b[i].v.size() == 0 ||
+                        supp_b[i].v[supp_b[i].v.size() - 1] != this->width) {
+                        supp_b[i].push_back(this->width);
+                    }
+                    supp_b[i].compress();
+                    if (supp_e[i].v.size() == 0 ||
+                        supp_e[i].v[supp_e[i].v.size() - 1] != this->width) {
+                        supp_e[i].push_back(this->width);
+                    }
+                    supp_e[i].compress();
+                }
                 sdsl::util::bit_compress(this->last_pref);
                 sdsl::util::bit_compress(this->last_div);
-                this->is_extended = false;
+                this->phi = new
+                        phi_ds(this->cols, this->height, this->width,
+                               this->last_pref, this->last_div, supp_b, supp_e,
+                               verbose);
+                this->is_extended = true;
                 input_matrix.close();
             } else {
                 throw FileNotFoundException{};
@@ -740,10 +767,10 @@ public:
             rec = bcf_init();
 
             //this->cols = std::vector<rl_column>(this->width + 1);
-            std::vector<unsigned int>
-                    pref(this->height);
-            std::vector<unsigned int>
-                    div(this->height);
+            std::vector<unsigned int> pref(this->height);
+            std::vector<unsigned int> div(this->height);
+            auto supp_b = std::vector<intv>(this->height);
+            auto supp_e = std::vector<intv>(this->height);
 //            sdsl::int_vector<>
 //                    div(this->height);
 
@@ -787,7 +814,7 @@ public:
                 }
                 free(gt_arr);
                 auto col = rlpbwt_int::build_column(new_column, pref,
-                                                    div);
+                                                    div, supp_b, supp_e, count);
                 //this->cols[count] = col;
                 this->cols.emplace_back(col);
                 rlpbwt_int::update(new_column, pref, div);
@@ -802,12 +829,28 @@ public:
                 this->last_div[i] = div[i];
             }
 
-            auto col = rlpbwt_int::build_column(last_col, pref, div);
-            //this->cols[count] = col;
+            auto col = rlpbwt_int::build_column(last_col, pref, div, supp_b,
+                                                supp_e, count);
             this->cols.emplace_back(col);
+            for (unsigned int i = 0; i < this->height; i++) {
+                if (supp_b[i].v.size() == 0 ||
+                    supp_b[i].v[supp_b[i].v.size() - 1] != this->width) {
+                    supp_b[i].push_back(this->width);
+                }
+                supp_b[i].compress();
+                if (supp_e[i].v.size() == 0 ||
+                    supp_e[i].v[supp_e[i].v.size() - 1] != this->width) {
+                    supp_e[i].push_back(this->width);
+                }
+                supp_e[i].compress();
+            }
             sdsl::util::bit_compress(this->last_pref);
             sdsl::util::bit_compress(this->last_div);
-            this->is_extended = false;
+            this->phi = new phi_ds(this->cols, this->height, this->width,
+                                   this->last_pref, this->last_div, supp_b,
+                                   supp_e,
+                                   verbose);
+            this->is_extended = true;
 
             bcf_hdr_destroy(hdr);
             hts_close(fp);
@@ -820,13 +863,14 @@ public:
      * @brief function to extend the RLPBWT with the phi/phi_inv structure
      * @param verbose bool for extra prints
      */
-    void extend(bool verbose = false) {
-        if (!this->is_extended) {
-            this->phi = new
-                    phi_ds(this->cols, this->height, this->width,
-                           this->last_pref, this->last_div, verbose);
-            this->is_extended = true;
-        }
+    /*
+   void extend(bool verbose = false) {
+       if (!this->is_extended) {
+           this->phi = new
+                   phi_ds(this->cols, this->height, this->width,
+                          this->last_pref, this->last_div, verbose);
+           this->is_extended = true;
+       }
 //        for (auto l: last_pref){
 //            std::cout << l << " ";
 //        }
@@ -864,11 +908,11 @@ public:
 //            std::cout << index << ":\t" << i << "\n";
 //            index++;
 //        }
-        //std::cout << "----------\n";
-        //std::cout << this->phi->phi(14,6).value()<< "\t";
-        //std::cout << this->phi->plcp(7,1)<< "\t";
-    }
-
+       //std::cout << "----------\n";
+       //std::cout << this->phi->phi(14,6).value()<< "\t";
+       //std::cout << this->phi->plcp(7,1)<< "\t";
+   }
+*/
     /**
      * @brief function to delete the phi/phi_inv structure
      */
@@ -902,7 +946,7 @@ public:
         // if required extend with the phi support struct (iff not already
         // extended)
         if (extend_matches && !this->is_extended) {
-            this->extend();
+            //this->extend();
         }
         // initialize matching statistics
         ms ms(query.size());
@@ -1125,9 +1169,10 @@ public:
      * @param vcf bool to indicate if the file is a vcf
      */
     void query_match(const char *filename, const char *out,
-                     bool extend_matches = false, bool verbose = false,
-                     bool vcf = false) {
-        if (!vcf) {
+                     bool verbose = false,
+                     bool macs = false) {
+        bool extend_matches = true;
+        if (macs) {
             std::ifstream input_matrix(filename);
             std::ofstream out_match(out);
             if (input_matrix.is_open()) {
@@ -1336,6 +1381,24 @@ public:
         }
     }
 
+    std::vector<unsigned int> get_prefix(unsigned int col){
+        if(this->height == 1){
+            return {};
+        }
+        std::vector<unsigned int> pref;
+        auto start_row = this->cols[col].sample_beg[0];
+        pref.push_back(start_row);
+        if(this->height == 1){
+            return pref;
+        }
+        auto next = this->phi->phi(start_row, col);
+        while (next.has_value()){
+            pref.push_back(next);
+            next  = this->phi->phi(next, col);
+        }
+        pref.push_back(next);
+        return pref;
+    }
 
     /**
      * function to get the total number of runs in the RLPBWT

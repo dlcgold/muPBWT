@@ -124,7 +124,7 @@ rl_column::serialize(std::ostream &out, sdsl::structure_tree_node *v,
     this->t.serialize(out, child, "t");
     this->sample_beg.serialize(out, child, "s_beg");
     this->sample_end.serialize(out, child, "s_end");
-    this->sample_beg_lcp.serialize(out, child, "s_beg_l");
+    //this->sample_beg_lcp.serialize(out, child, "s_beg_l");
     sdsl::structure_tree::add_size(child, written_bytes);
     return written_bytes;
 }
@@ -137,7 +137,7 @@ void rl_column::load(std::istream &in) {
     this->t.load(in);
     this->sample_beg.load(in);
     this->sample_end.load(in);
-    this->sample_beg_lcp.load(in);
+    //this->sample_beg_lcp.load(in);
 }
 
 
