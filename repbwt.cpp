@@ -132,10 +132,6 @@ int main(int argc, char **argv) {
     if (load_file.empty()) {
 
         rlpbwt_int rlpbwt(matrix_input.c_str(), verbose, macs);
-        //if (extend) {
-        //rlpbwt.extend();
-        //}
-
         if (!memorize_file.empty()) {
             std::ofstream outstream;
             outstream.open(memorize_file.c_str());

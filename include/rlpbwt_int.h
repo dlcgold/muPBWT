@@ -1381,23 +1381,112 @@ public:
         }
     }
 
-    std::vector<unsigned int> get_prefix(unsigned int col){
-        if(this->height == 1){
+    /**
+     * function to get prefix array at a column
+     * @param col required column
+     * @return prefix array
+     */
+    std::vector<unsigned int> get_prefix(unsigned int col) {
+        if (this->height == 0) {
             return {};
         }
         std::vector<unsigned int> pref;
         auto start_row = this->cols[col].sample_beg[0];
         pref.push_back(start_row);
-        if(this->height == 1){
+        if (this->height == 1) {
             return pref;
         }
-        auto next = this->phi->phi(start_row, col);
-        while (next.has_value()){
-            pref.push_back(next);
-            next  = this->phi->phi(next, col);
+        auto next = this->phi->phi_inv(start_row, col);
+        while (next.has_value()) {
+            pref.push_back(next.value());
+            next = this->phi->phi_inv(next.value(), col);
         }
-        pref.push_back(next);
         return pref;
+    }
+
+    /**
+     * function to get divergence array at a column
+     * @param col required column
+     * @return divergence array
+     */
+    std::vector<unsigned int> get_divergence(unsigned int col) {
+        if (this->height == 0) {
+            return {};
+        }
+        std::vector<unsigned int> div;
+        auto start_row = this->cols[col].sample_beg[0];
+        div.push_back(this->phi->plcp(start_row, col));
+        if (this->height == 1) {
+            return div;
+        }
+        auto next = this->phi->phi_inv(start_row, col);
+        while (next.has_value()) {
+            div.push_back(this->phi->plcp(next.value(), col));
+            next = this->phi->phi_inv(next.value(), col);
+        }
+        return div;
+    }
+
+    /**
+    * function to get prefix/divergence array at a column
+    * @param col required column
+    * @return prefix and divergence array
+    */
+    std::vector <std::pair<unsigned int, unsigned int>>
+    get_prefix_divergence(unsigned int col) {
+        if (this->height == 0) {
+            return {};
+        }
+        std::vector <std::pair<unsigned int, unsigned int>> prefdiv;
+        auto start_row = this->cols[col].sample_beg[0];
+        prefdiv.push_back(
+                std::make_pair(start_row, this->phi->plcp(start_row, col)));
+        if (this->height == 1) {
+            return prefdiv;
+        }
+        auto next = this->phi->phi_inv(start_row, col);
+        while (next.has_value()) {
+            prefdiv.push_back(std::make_pair(next.value(),
+                                             this->phi->plcp(next.value(),
+                                                             col)));
+            next = this->phi->phi_inv(next.value(), col);
+        }
+        return prefdiv;
+    }
+
+    /**
+   * function to get u/v arrays at a column
+   * @param col required column
+   * @return u/v arrays
+   */
+    std::vector <std::pair<unsigned int, unsigned int>>
+    get_u_v(unsigned int col) {
+        if (this->height == 0) {
+            return {};
+        }
+        std::vector <std::pair<unsigned int, unsigned int>> uv;
+        for (unsigned int i = 0; i < this->height; i++) {
+            auto tmp = uvtrick(col, index_to_run(i, col));
+            uv.push_back(tmp);
+        }
+        return uv;
+    }
+
+    /**
+   * function to get a column of the pbwt
+   * @param col required column
+   * @return column as string
+   */
+    std::string get_col(unsigned int col) {
+        if (this->height == 1) {
+            return {};
+        }
+        std::string c = "";
+        bool s = this->cols[col].zero_first;
+        for (unsigned int i = 0; i < this->height; i++) {
+            c += get_next_char(s, index_to_run(i, col));
+        }
+        return c;
     }
 
     /**
