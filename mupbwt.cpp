@@ -3,7 +3,7 @@
 #include "include/rlpbwt_int.h"
 
 void printHelp() {
-    std::cout << "Usage: PLOUTON [options]\n" << std::endl;
+    std::cout << "Usage: mupbwt [options]\n" << std::endl;
     std::cout << "Options:" << std::endl;
     std::cout << "  -i, --input_file <path>\t macs file for panel" << std::endl;
     std::cout << "  -s, --save <path>\t  path to save serialization "

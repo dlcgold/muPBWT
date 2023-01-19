@@ -1,4 +1,4 @@
-# rePBWT
+# μ-PBWT
 A PBWT-based light index  for biobank scale genotype data.
 
 ## Build
@@ -12,7 +12,7 @@ cmake --build build
 cd build
 ```
 ```
-Usage: ./rePBWT [options]
+Usage: ./mupbwt [options]
 
 Options:
   -i, --input_file <path>	 macs file for panel
@@ -29,7 +29,7 @@ Options:
 example using rePBWT (slp mode) with lce queries and matches extended:
 
 ```
-./repbwt -i <input matrix> -s <serialization file>
-./repbwt -l <serialization file> -o <output file> -q <query file>
+./mupbwt -i <input matrix> -s <serialization file>
+./mupbwt -l <serialization file> -o <output file> -q <query file>
 ```
 
