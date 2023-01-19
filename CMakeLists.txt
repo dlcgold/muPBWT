@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(rePBWT)
+project(muPBWT)
 
 set(CMAKE_CXX_STANDARD 17)
 find_package(OpenMP)
@@ -49,7 +49,7 @@ add_subdirectory(thirdparty)
 #
 #    add_test(NAME rlpbwt_test COMMAND rlpbwt_test)
 #else ()
-    add_executable(repbwt repbwt.cpp
+    add_executable(mupbwt mupbwt.cpp
             lib/utils.cpp include/utils.h
             include/exceptions.h
             include/phi_ds.h
@@ -57,6 +57,6 @@ add_subdirectory(thirdparty)
             lib/ms_matches.cpp include/ms_matches.h
             lib/rl_column.cpp include/rl_column.h
             include/rlpbwt_int.h)
-    target_link_libraries(repbwt sdsl divsufsort divsufsort64 htslib -lz ${OpenMP_CXX_LIBRARIES})
+    target_link_libraries(mupbwt sdsl divsufsort divsufsort64 htslib -lz ${OpenMP_CXX_LIBRARIES})
 
 #endif ()
