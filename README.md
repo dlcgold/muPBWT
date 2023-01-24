@@ -105,7 +105,7 @@ The command:
 ```shell
 bcftools query -l <input vcf/bcf> > samples.txt
 ```
-store in `samples.txt` all the samples name, in order. So, for example, row indices 0 and 1 corresponds to the two haplotypes of the first sample, row indices 2 and 3 to the secondo one etc...
+store in `samples.txt` all the samples name, in order. So, for example, row indices 0 and 1 corresponds to the two haplotypes of the first sample, row indices 2 and 3 to the second one etc...
 
 ## Results
 Results on high-coverage whole genome sequencing data from UK Biobank (chromosome 20):
