@@ -15,7 +15,7 @@ cd build
 Usage: ./mupbwt [options]
 
 Options:
-  -i, --input_file <path>	 macs file for panel
+  -i, --input_file <path>	 vcf/bcf file for panel
   -s, --save <path>	  path to save serialization 
   -l, --load <path>	 path to load serialization
   -o, --output <path>	 path to query output
