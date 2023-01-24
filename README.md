@@ -1,5 +1,5 @@
 # μ-PBWT
-A PBWT-based light index  for biobank scale genotype data.
+A PBWT-based light index  for UK Biobank scale genotype data.
 
 ## Build
 Build:
