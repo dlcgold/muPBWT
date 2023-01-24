@@ -49,14 +49,14 @@ add_subdirectory(thirdparty)
 #
 #    add_test(NAME rlpbwt_test COMMAND rlpbwt_test)
 #else ()
-    add_executable(mupbwt mupbwt.cpp
-            lib/utils.cpp include/utils.h
-            include/exceptions.h
-            include/phi_ds.h
-            lib/ms.cpp include/ms.h
-            lib/ms_matches.cpp include/ms_matches.h
-            lib/rl_column.cpp include/rl_column.h
-            include/rlpbwt_int.h)
-    target_link_libraries(mupbwt sdsl divsufsort divsufsort64 htslib -lz ${OpenMP_CXX_LIBRARIES})
+add_executable(mupbwt mupbwt.cpp
+        lib/utils.cpp include/utils.h
+        include/exceptions.h
+        include/phi_ds.h
+        lib/ms.cpp include/ms.h
+        lib/ms_matches.cpp include/ms_matches.h
+        lib/rl_column.cpp include/rl_column.h
+        include/rlpbwt_int.h)
+target_link_libraries(mupbwt sdsl divsufsort divsufsort64 htslib -lz ${OpenMP_CXX_LIBRARIES})
 
 #endif ()
