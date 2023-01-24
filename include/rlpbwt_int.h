@@ -790,7 +790,7 @@ public:
             // iterate each vcf record
             while (bcf_read(fp, hdr, rec) >= 0) {
                 this->width++;
-                std::cout << "Analyze sample: " << count << "\r";
+                std::cout << "Analyze site: " << count << "\r";
                 new_column = "";
                 bcf_unpack(rec, BCF_UN_ALL);
                 // read SAMPLE
@@ -858,61 +858,6 @@ public:
         }
     }
 
-
-    /**
-     * @brief function to extend the RLPBWT with the phi/phi_inv structure
-     * @param verbose bool for extra prints
-     */
-    /*
-   void extend(bool verbose = false) {
-       if (!this->is_extended) {
-           this->phi = new
-                   phi_ds(this->cols, this->height, this->width,
-                          this->last_pref, this->last_div, verbose);
-           this->is_extended = true;
-       }
-//        for (auto l: last_pref){
-//            std::cout << l << " ";
-//        }
-//        std::cout << "\ni\t";
-//        for (auto l: last_div){
-//            std::cout << l << " ";
-//        }
-//        std::cout << "\ni\t";
-//        for (unsigned int j = 0; j < this->width; j++) {
-//            std::cout << j << "\t";
-//        }
-//        std::cout << "\n";
-//        for (unsigned int j = 0; j < this->width; j++) {
-//            std::cout << "-" << "\t";
-//        }
-//        std::cout << "\n";
-//        for (unsigned int i = 0; i < this->height; i++) {
-//            std::cout << i << ":\t";
-//            for (unsigned int j = 0; j < this->width; j++) {
-//                std::cout << this->phi->plcp(i, j)<< "\t";
-//            }
-//            std::cout << "\n";
-//        }
-//        std::cout << "\n";
-//        for (unsigned int i = 0; i < this->width; i++) {
-//            std::cout << i << ":\t";
-//            for (unsigned int j = 0; j < this->cols[i].sample_beg_lcp.size(); j++) {
-//                std::cout << this->cols[i].sample_beg_lcp[j] << "\t";
-//            }
-//            std::cout << "\n";
-//        }
-//        std::cout << "\n";
-//        auto index = 0;
-//        for (auto &i: this->phi->phi_supp_l) {
-//            std::cout << index << ":\t" << i << "\n";
-//            index++;
-//        }
-       //std::cout << "----------\n";
-       //std::cout << this->phi->phi(14,6).value()<< "\t";
-       //std::cout << this->phi->plcp(7,1)<< "\t";
-   }
-*/
     /**
      * @brief function to delete the phi/phi_inv structure
      */
