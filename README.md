@@ -156,3 +156,6 @@ Results on 1000 Genome Project phase 3 data including the average number of runs
 | **Total** | **2454** | **77818346** | **11**     | **9.91**      | **17.67**   | **-**       | **64.34**        |
 
 Note that total building times are not printed due to the fact that all the computations have been done in parallel.
+
+## Reference
+WIP
