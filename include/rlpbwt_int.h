@@ -515,6 +515,7 @@ private:
 
             // down
             while (check_down) {
+               // std::cout << "down\n";
                 auto phi_res = this->phi->phi_inv(start_row,
                                                   curr_col + 1);
 
@@ -522,19 +523,22 @@ private:
                     break;
                 }
                 down_row = phi_res.value();
-                //std::cout << "check d: " << down_row << " " << down_index << " " << curr_col << " " << start_row << "\n";
+               // std::cout << "check d: " << down_row << " " << down_index << " " << curr_col << " " << start_row << "\n";
                 //std::cout << curr_len << " "
-                //          << this->phi->plcp(down_row, curr_col) << "\n";
+                 //         << this->phi->plcp(down_row, curr_col+1) << "\n";
                 if (this->phi->plcp(down_row, curr_col + 1) >= curr_len) {
                     haplos.emplace_back(down_row);
                     start_row = down_row;
                 } else {
                     check_down = false;
                 }
+                //std::cout << "here " << check_down << "\n";
                 down_index++;
 
             }
+
             start_row = std::get<0>(ms_matches.basic_matches[i]);
+            //std::cout << "jump " << up_index << " " << start_row << "\n";
             // up
             while (check_up) {
                 auto phi_res = this->phi->phi(start_row,
@@ -819,7 +823,6 @@ public:
                 this->cols.emplace_back(col);
                 rlpbwt_int::update(new_column, pref, div);
                 last_col = new_column;
-
                 count++;
             }
             std::cout << std::endl;
@@ -828,18 +831,17 @@ public:
                 this->last_pref[i] = pref[i];
                 this->last_div[i] = div[i];
             }
-
             auto col = rlpbwt_int::build_column(last_col, pref, div, supp_b,
                                                 supp_e, count);
             this->cols.emplace_back(col);
             for (unsigned int i = 0; i < this->height; i++) {
                 if (supp_b[i].v.size() == 0 ||
-                    supp_b[i].v[supp_b[i].v.size() - 1] != this->width) {
+                    supp_b[i].v[supp_b[i].size - 1] != this->width) {
                     supp_b[i].push_back(this->width);
                 }
                 supp_b[i].compress();
                 if (supp_e[i].v.size() == 0 ||
-                    supp_e[i].v[supp_e[i].v.size() - 1] != this->width) {
+                    supp_e[i].v[supp_e[i].size - 1] != this->width) {
                     supp_e[i].push_back(this->width);
                 }
                 supp_e[i].compress();
@@ -1156,10 +1158,10 @@ public:
 
                     auto n_queries = queries.size();
                     std::vector <ms_matches> matches_vec(n_queries);
+
 #pragma omp parallel for default(none) \
     shared(queries, matches_vec, n_queries, extend_matches, verbose)
                     for (unsigned int i = 0; i < n_queries; i++) {
-                        // std::cout << i << "\n";
                         matches_vec[i] = this->match_thr(
                                 queries[i], extend_matches, verbose);
                     }
@@ -1269,8 +1271,9 @@ public:
                 std::vector <ms_matches> matches_vec(n_queries);
 
 #pragma omp parallel for default(none) \
-    shared(queries, matches_vec, n_queries, extend_matches, verbose)
+    shared(queries, matches_vec, n_queries, extend_matches, verbose, std::cout)
                 for (unsigned int i = 0; i < n_queries; i++) {
+                    //std::cout <<  "query: " << i << "\n";
                     matches_vec[i] =
                             this->match_thr(queries[i], extend_matches,
                                             verbose);
