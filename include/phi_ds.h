@@ -32,47 +32,47 @@ public:
     /**
      * @brief panel of sparse bitvectors for phi function
      */
-    std::vector <sdsl::sd_vector<>> phi_vec;
+    std::vector<sdsl::sd_vector<>> phi_vec;
 
     /**
      * @brief panel of sparse bitvectors for phi_inv function
      */
-    std::vector <sdsl::sd_vector<>> phi_inv_vec;
+    std::vector<sdsl::sd_vector<>> phi_inv_vec;
 
     /**
      * @brief panel of rank support for phi function
      */
-    std::vector <sdsl::sd_vector<>::rank_1_type> phi_rank;
+    std::vector<sdsl::sd_vector<>::rank_1_type> phi_rank;
 
     /**
      * @brief panel of rank support for phi_inv function
      */
-    std::vector <sdsl::sd_vector<>::rank_1_type> phi_inv_rank;
+    std::vector<sdsl::sd_vector<>::rank_1_type> phi_inv_rank;
 
     /**
      * @brief panel of select support for phi function
      */
-    std::vector <sdsl::sd_vector<>::select_1_type> phi_select;
+    std::vector<sdsl::sd_vector<>::select_1_type> phi_select;
 
     /**
      * @brief panel of select support for phi_inv function
      */
-    std::vector <sdsl::sd_vector<>::select_1_type> phi_inv_select;
+    std::vector<sdsl::sd_vector<>::select_1_type> phi_inv_select;
 
     /**
      * @brief compressed int vector for prefix samples used by phi function
      */
-    std::vector <sdsl::int_vector<>> phi_supp;
+    std::vector<sdsl::int_vector<>> phi_supp;
 
     /**
      * @brief compressed int vector for prefix samples used by phi_inv function
      */
-    std::vector <sdsl::int_vector<>> phi_inv_supp;
+    std::vector<sdsl::int_vector<>> phi_inv_supp;
 
     /**
     * @brief compressed int vector for prefix samples used by phi function
     */
-    std::vector <sdsl::int_vector<>> phi_supp_l;
+    std::vector<sdsl::int_vector<>> phi_supp_l;
 
 
     /**
@@ -92,12 +92,12 @@ public:
      * @param last_pref last prefix array of the PBWT
      * @param verbose bool for extra prints
      */
-    explicit phi_ds(std::vector <rl_column> &cols, unsigned int h,
+    explicit phi_ds(std::vector<rl_column> &cols, unsigned int h,
                     unsigned int w,
                     sdsl::int_vector<> &last_pref,
                     sdsl::int_vector<> &last_div,
-                    std::vector <intv> &supp_b,
-                    std::vector <intv> &supp_e,
+                    std::vector<intv> &supp_b,
+                    std::vector<intv> &supp_e,
                     bool verbose = false) {
         // default value is the panel height
         this->def = h;
@@ -129,9 +129,9 @@ public:
         this->phi_supp_l = std::vector<sdsl::int_vector<>>(h);
 
         // temporary vector for supports
-        std::vector <std::vector<unsigned int>> phi_supp_tmp(h);
-        std::vector <std::vector<unsigned int>> phi_inv_supp_tmp(h);
-        std::vector <std::vector<unsigned int>> phi_supp_tmp_l(h);
+        std::vector<std::vector<unsigned int>> phi_supp_tmp(h);
+        std::vector<std::vector<unsigned int>> phi_inv_supp_tmp(h);
+        std::vector<std::vector<unsigned int>> phi_supp_tmp_l(h);
 
         // build sparse bitvector
         for (unsigned int j = 0; j < def; j++) {
@@ -289,8 +289,11 @@ public:
      * @return previous prefix array value at current column (if exists)
      */
     std::optional<unsigned int> phi(unsigned int pref, unsigned int col) {
-        auto res = static_cast<unsigned int>(this->phi_supp[pref][this->phi_rank[pref](
-                col)]);
+        auto tmp_col = this->phi_rank[pref](col);
+        if(tmp_col == this->phi_supp[pref].size()){
+            tmp_col--;
+        }
+        auto res = static_cast<unsigned int>(this->phi_supp[pref][tmp_col]);
         if (res == this->def) {
             return std::nullopt;
         } else {
@@ -305,8 +308,11 @@ public:
      * @return next prefix array value at current column (if exists)
     */
     std::optional<unsigned int> phi_inv(unsigned int pref, unsigned int col) {
-        auto res = static_cast<unsigned int>(this->phi_inv_supp[pref][this->phi_inv_rank[pref](
-                col)]);
+        auto tmp_col = this->phi_inv_rank[pref](col);
+        if(tmp_col == this->phi_inv_supp[pref].size()){
+            tmp_col--;
+        }
+        auto res = static_cast<unsigned int>(this->phi_inv_supp[pref][tmp_col]);
         if (res == this->def) {
             return std::nullopt;
         } else {
@@ -318,29 +324,12 @@ public:
         if (col == 0 || !phi(pref, col).has_value()) {
             return 0;
         }
-//        unsigned int end_col = 1;
-//        std::cout << this->phi_vec[pref] << std::endl;
-//        std::cout << this->phi_rank[pref](col) << std::endl;
-//        std::cout << this->phi_select[pref](this->phi_rank[pref](col)+1) << std::endl;
-//        //std::cout << "make select\n";
-//        if (col != 1) {
-//            end_col = this->phi_select[pref](col - 1);
-//        }
-
-        auto end_col = this->phi_select[pref](this->phi_rank[pref](col) + 1);
-        //std::cout << "end col: " << end_col << "\n";
-        auto tmp = static_cast<int>(this->phi_supp_l[pref][this->phi_rank[pref](
-                col)]);
-        //std::cout << "value at end: " << tmp << "\n";
-        if (!phi(pref, end_col + 1).has_value()) {
-            //std::cout << "here\n";
-            //tmp++;
+        auto tmp_col = this->phi_rank[pref](col);
+        if(tmp_col == this->phi_supp[pref].size()){
+            tmp_col--;
         }
-        if (end_col == w) {
-
-        }
-        //std::cout << "value at end: " << tmp << "\n";
-        //std::cout << "diff: " << end_col - col << "\n";
+        auto end_col = this->phi_select[pref](tmp_col + 1);
+        auto tmp = static_cast<int>(this->phi_supp_l[pref][tmp_col]);
         auto plcp = tmp - (end_col - col);
         return plcp;
     }
@@ -394,7 +383,8 @@ public:
         if (verbose) {
             std::cout << "phi panels: " << size_panels << " megabytes\n";
             std::cout << "phi support: " << size_supp << " megabytes\n";
-            std::cout << "phi data structure (panels + support): " << size << " megabytes\n";
+            std::cout << "phi data structure (panels + support): " << size
+                      << " megabytes\n";
         }
         return size;
     }
