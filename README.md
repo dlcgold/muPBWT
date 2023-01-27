@@ -1,5 +1,5 @@
-![Conda](https://img.shields.io/conda/v/bioconda/mupbwt?color=green)
-![Conda](https://img.shields.io/conda/dn/bioconda/mupbwt?color=green&label=conda%20%7C%20downloads)
+[![Conda](https://img.shields.io/conda/v/bioconda/mupbwt?color=green)](https://anaconda.org/bioconda/mupbwt)
+[![Conda](https://img.shields.io/conda/dn/bioconda/mupbwt?color=green&label=conda%20%7C%20downloads)](https://anaconda.org/bioconda/mupbwt)
 [![GitHub stars](https://img.shields.io/github/stars/dlcgold/muPBWT.svg)](https://github.com/dlcgold/muPBWT/stargazers)
 # μ-PBWT
 A PBWT-based light index  for UK Biobank scale genotype data.
