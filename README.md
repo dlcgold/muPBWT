@@ -1,3 +1,4 @@
+[![install with bioconda](https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat)](http://bioconda.github.io/recipes/mupbwt/README.html)
 [![Conda](https://img.shields.io/conda/v/bioconda/mupbwt?color=green)](https://anaconda.org/bioconda/mupbwt)
 [![Conda](https://img.shields.io/conda/dn/bioconda/mupbwt?color=green&label=conda%20%7C%20downloads)](https://anaconda.org/bioconda/mupbwt)
 [![GitHub stars](https://img.shields.io/github/stars/dlcgold/muPBWT.svg)](https://github.com/dlcgold/muPBWT/stargazers)
