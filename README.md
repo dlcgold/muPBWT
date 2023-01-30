@@ -5,7 +5,13 @@
 # μ-PBWT
 A PBWT-based light index  for UK Biobank scale genotype data.
 
-## Build
+## Conda install
+μ-PBWT is available on [conda](https://docs.conda.io/en/latest/) ([bioconda](https://bioconda.github.io/) channel):
+```shell
+conda install -c bioconda mupbwt
+```
+
+## Build from source
 Prepare the cmake for building the current project in ‘.’ into the ‘build’ folder
 ```shell
 cmake -S . -B build 
@@ -14,14 +20,13 @@ Build μ-PBWT:
 ```shell
 cmake --build build
 ```
-
-## Conda install
-μ-PBWT is available on [conda](https://docs.conda.io/en/latest/) ([bioconda](https://bioconda.github.io/) channel):
+## Install from source (optional)
+Install μ-PBWT (default in `/usr/local/bin/`, use `--prefix <path>` for custom path):
 ```shell
-conda install -c bioconda mupbwt
+cmake --install build
 ```
-## Usage
 
+## Usage
 File format supported:
 - BCF/VCF
 - [MaCS](https://github.com/gchen98/macs)
