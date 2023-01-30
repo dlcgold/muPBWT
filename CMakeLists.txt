@@ -20,3 +20,5 @@ add_executable(mupbwt mupbwt.cpp
         include/rlpbwt_int.h)
 target_link_libraries(mupbwt sdsl divsufsort divsufsort64 htslib -lz ${OpenMP_CXX_LIBRARIES})
 
+set(tool_dest "bin")
+install(TARGETS mupbwt DESTINATION "${tool_dest}")
