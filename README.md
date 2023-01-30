@@ -21,10 +21,11 @@ Build μ-PBWT:
 cmake --build build
 ```
 ## Install from source (optional)
-Install μ-PBWT (default in `/usr/local/bin/`, use `--prefix <path>` for custom path):
+Install μ-PBWT (default in `/usr/local/bin/`, `sudo` required):
 ```shell
 cmake --install build
 ```
+Use `--prefix <path>` for custom path.
 
 ## Usage
 File format supported:
