@@ -141,7 +141,7 @@ Results on high-coverage whole genome sequencing data from UK Biobank (chromosom
 | chr20:51789199-55789212 | 150119       | 911452       | 2                 | 0.81            | 06:45            | 2.13                 |
 | chr20:55789213-59874964 | 150119       | 925442       | 2                 | 0.84            | 06:49            | 2.20                 |
 | chr20:59874965-64334101 | 150119       | 1096089      | 2.4               | 0.93            | 08:00            | 2.42                 |
-| **Total**               | **150119**   | **13780193** | **9.6**           | **11.08**       | **-**            | **29.15**            |
+| **Total**               | **150119**   | **13780193** | **29.6**          | **11.08**       | **-**            | **29.15**            |
 
 Results on 1000 Genome Project phase 3 data including the average number of runs per site:
 
