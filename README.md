@@ -128,7 +128,7 @@ bcftools query -l <input vcf/bcf> > samples.txt
 store in `samples.txt` all the samples name, in order. So, for example, row indices 0 and 1 corresponds to the two haplotypes of the first sample, row indices 2 and 3 to the second one etc...
 
 Eventually you can use `script/mem_sample.py`:
-```shell
+```
 > python mem_sample.py -h
 usage: mem_sample.py [-h] [-i INPUT] [-p PANEL] [-q QUERIES] [-o OUTPUT]
 
