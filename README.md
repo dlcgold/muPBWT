@@ -69,9 +69,9 @@ Query and  save the index:
 Using examples in `sample_data`:
 ```shell
 ./mupbwt -i sample_data/panel.bcf -s sample_data/index.ser
-./mupbwt -l sample_data/index.ser -q sample_data/query.bcf -o sample_data_results 
-./mupbwt -i sample_data/panel.bcf -q sample_data/query.bcf -o sample_data_results
-./mupbwt -i sample_data/panel.bcf -s sample_data/index.ser -q sample_data/query.bcf -o sample_data_results
+./mupbwt -l sample_data/index.ser -q sample_data/query.bcf -o sample_data/sample_data_results 
+./mupbwt -i sample_data/panel.bcf -q sample_data/query.bcf -o sample_data/sample_data_results
+./mupbwt -i sample_data/panel.bcf -s sample_data/index.ser -q sample_data/query.bcf -o sample_data/sample_data_results
 ```
 
 Load the index and print details to stdout:
@@ -115,6 +115,10 @@ Each row contain a SMEM:
 ```
 MATCH   <query index>   <row index> <staring column>    <ending column> <SMEM length>
 ```
+For example:
+```
+MATCH	99	150	414	430	17
+```
 Row index and query index are incrementally so the name of the sample and the precise haplotype can be calculated using the output of [bcftools](https://github.com/samtools/bcftools). 
 
 The command:
@@ -123,6 +127,35 @@ bcftools query -l <input vcf/bcf> > samples.txt
 ```
 store in `samples.txt` all the samples name, in order. So, for example, row indices 0 and 1 corresponds to the two haplotypes of the first sample, row indices 2 and 3 to the second one etc...
 
+Eventually you can use `script/mem_sample.py`:
+```shell
+> python mem_sample.py -h
+usage: mem_sample.py [-h] [-i INPUT] [-p PANEL] [-q QUERIES] [-o OUTPUT]
+
+options:
+  -h, --help            show this help message and exit
+  -i INPUT, --input INPUT
+                        SMEM file in Durbin's format
+  -p PANEL, --panel PANEL
+                        panel as VCF/BCF (optional)
+  -q QUERIES, --queries QUERIES
+                        queries as VCF/BCF (optional)
+  -o OUTPUT, --output OUTPUT
+                        output file
+```
+Esample:
+```
+python mem_sample.py -i sample_data/sample_data_results -p sample_data/panel.bcf -q sample_data/query.bcf -o sample_data/sample_data_results_new
+```
+Only one between `PANEL` and `QUERIES` can be specified.
+New SMEM file will contain in each row:
+```
+MATCH   <querySample_haplotype>   <panelSample_haplotype> <staring column>    <ending column> <SMEM length>
+```
+For example, assuming both `PANEL` and `QUERIES`:
+```
+MATCH	1318026_1	4919834_0	414	430	17
+```
 ## Results
 Results on high-coverage whole genome sequencing data from UK Biobank (chromosome 20):
 
@@ -173,5 +206,6 @@ Results on 1000 Genome Project phase 3 data including the average number of runs
 
 Note that total building times are not printed due to the fact that all the computations have been done in parallel.
 
-## Reference
+The pipeline for 1000 Genome Project phase 3 data is available at [dlcgold/muPBWT-1KGP-workflow](https://github.com/dlcgold/muPBWT-1KGP-workflow).
+
 WIP
