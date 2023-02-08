@@ -495,7 +495,6 @@ private:
                     ms_matches.basic_matches[i]);
             unsigned int curr_col = std::get<2>(
                     ms_matches.basic_matches[i]);
-            //std::cout << "for match " << start_row << " " << curr_len << "\n";
             // initialize boolean and temporary variables for go up/down in
             // search of matching rows
             bool check_down = true;
@@ -515,30 +514,23 @@ private:
 
             // down
             while (check_down) {
-               // std::cout << "down\n";
                 auto phi_res = this->phi->phi_inv(start_row,
                                                   curr_col + 1);
-
                 if (!phi_res.has_value()) {
                     break;
                 }
                 down_row = phi_res.value();
-               // std::cout << "check d: " << down_row << " " << down_index << " " << curr_col << " " << start_row << "\n";
-                //std::cout << curr_len << " "
-                 //         << this->phi->plcp(down_row, curr_col+1) << "\n";
                 if (this->phi->plcp(down_row, curr_col + 1) >= curr_len) {
                     haplos.emplace_back(down_row);
                     start_row = down_row;
                 } else {
                     check_down = false;
                 }
-                //std::cout << "here " << check_down << "\n";
                 down_index++;
 
             }
 
             start_row = std::get<0>(ms_matches.basic_matches[i]);
-            //std::cout << "jump " << up_index << " " << start_row << "\n";
             // up
             while (check_up) {
                 auto phi_res = this->phi->phi(start_row,
@@ -548,13 +540,6 @@ private:
                     break;
                 }
                 up_row = phi_res.value();
-                //std::cout << "check u: " << up_row << " " << up_index << " " << curr_col << " " << start_row << "\n";
-                //std::cout << curr_len << " "
-                //          << this->phi->plcp(start_row, curr_col) << "\n";
-//                if (up_index < i_r || up_index > e_r) {
-//                    break;
-//                }
-
                 if (this->phi->plcp(start_row, curr_col + 1) >= curr_len) {
                     haplos.emplace_back(up_row);
                     start_row = up_row;
@@ -566,41 +551,8 @@ private:
             }
             // record the haplotypes
             ms_matches.haplos.emplace_back(haplos);
-            //ref.clear();
         }
     }
-
-//    bool check_extend(unsigned int col, std::vector<char> f_r,
-//                      unsigned int s_r,
-//                      unsigned int length) const {
-//        unsigned int start = 0;
-//        if ((int) col - ((int) length - 1) >= 0) {
-//            start = col - (length - 1);
-//        }
-//        auto size = f_r.size();
-//        bool check = true;
-//        unsigned int end = f_r.size() - 1;
-//        s_r = reverse_lf(col + 1, s_r, false);
-//        for (unsigned int i = col; i >= start; i--) {
-//            if (i >= 0) {
-//                char s = get_next_char(this->cols[i].zero_first,
-//                                       index_to_run(s_r, i));
-//                if (f_r[end] != s) {
-//                    check = false;
-//                    break;
-//                }
-//
-//                s_r = reverse_lf(i, s_r, false);
-//
-//                end--;
-//            }
-//            if (i == 0) {
-//                break;
-//            }
-//        }
-//        return check;
-//    }
-
 
 public:
     /**
@@ -879,9 +831,59 @@ public:
      * with rows
      * @param verbose bool for extra prints
      * @return matching statistics matches
-     * @attention use this function is enabled iff thresholds are calculated
      */
     ms_matches match_thr(const std::string &query, bool extend_matches = false,
+                         bool verbose = false) {
+
+        // compute the match iff |query| is equal to the width of the panel
+        if (query.size() != this->width) {
+            std::cout << query.size() << " != " << this->width
+                      << "\n";
+            throw NotEqualLengthException{};
+        }
+
+        // initialize matching statistics
+        auto ms_tot = compute_ms(query, extend_matches, verbose);
+        auto ms = ms_tot.first;
+        auto ms_supp = ms_tot.second;
+        // initialize struct for matches
+        ms_matches ms_matches;
+        // save every match from matching statistics (when we have a "peak" in
+        // ms len vector)
+        for (unsigned int i = 0; i < ms.len.size(); i++) {
+            if ((i != ms.len.size() - 1 && ms.len[i] > 0 &&
+                 ms.len[i] >= ms.len[i + 1]) ||
+                (i == ms.len.size() - 1 && ms.len[i] != 0)) {
+                ms_matches.basic_matches.emplace_back(ms.row[i], ms.len[i],
+                                                      i);
+            }
+        }
+        // compute every row that are matching if required
+        if (extend_matches) {
+            if (verbose) {
+                std::cout << "\nextending\n";
+            }
+            extend_haplos(ms_matches, ms_supp);
+
+        }
+        if (verbose) {
+            std::cout << ms << "\n";
+            std::cout << ms_matches << "\n";
+        }
+
+        return ms_matches;
+    }
+
+    /**
+     * @brief function to compute matching statistics with a given query using
+     * thresholds
+     * @param query haplotype query as std::string
+     * @param extend_matches bool to check if extend matching statistics matches
+     * with rows
+     * @param verbose bool for extra prints
+     * @return matching statistics matches
+     */
+    std::pair<ms, std::vector<unsigned int>> compute_ms(const std::string &query, bool extend_matches = false,
                          bool verbose = false) {
 
         // compute the match iff |query| is equal to the width of the panel
@@ -1077,32 +1079,11 @@ public:
                 ms.len[i] = len;
             }
         }
-        // initialize struct for matches
-        ms_matches ms_matches;
-        // save every match from matching statistics (when we have a "peak" in
-        // ms len vector)
-        for (unsigned int i = 0; i < ms.len.size(); i++) {
-            if ((i != ms.len.size() - 1 && ms.len[i] > 0 &&
-                 ms.len[i] >= ms.len[i + 1]) ||
-                (i == ms.len.size() - 1 && ms.len[i] != 0)) {
-                ms_matches.basic_matches.emplace_back(ms.row[i], ms.len[i],
-                                                      i);
-            }
-        }
-        // compute every row that are matching if required
-        if (extend_matches) {
-            if (verbose) {
-                std::cout << "\nextending\n";
-            }
-            extend_haplos(ms_matches, ms_supp);
-
-        }
         if (verbose) {
             std::cout << ms << "\n";
-            std::cout << ms_matches << "\n";
         }
 
-        return ms_matches;
+        return std::make_pair(ms, ms_supp);
     }
 
 

@@ -51,7 +51,7 @@ int main(int argc, char **argv) {
                 {"details", no_argument,       nullptr, 'd'},
                 {"verbose", no_argument,       nullptr, 'v'},
                 {"help",    no_argument,       nullptr, 'h'},
-                {nullptr,   0,                 nullptr, 0}};
+                {nullptr, 0,                   nullptr, 0}};
 
         int option_index = 0;
         c = getopt_long(argc, argv, "i:s:l:o:q:emvdh", long_options,
