@@ -1,0 +1,11 @@
+url_path,views_total,views_unique
+/dlcgold/muPBWT,15,13
+/dlcgold/muPBWT/tree/main/include,3,2
+/dlcgold/muPBWT/tree/main/thirdparty,2,2
+/dlcgold/muPBWT/blob/main/CMakeLists.txt,1,1
+/dlcgold/muPBWT/blob/main/include/ms_matches.h,1,1
+/dlcgold/muPBWT/blob/main/include/rlpbwt_int.h,1,1
+/dlcgold/muPBWT/blob/main/lib/matches_naive.cpp,1,1
+/dlcgold/muPBWT/blob/main/lib/ms.cpp,1,1
+/dlcgold/muPBWT/blob/main/lib/ms_matches.cpp,1,1
+/dlcgold/muPBWT/blob/main/lib/rl_column.cpp,1,1
