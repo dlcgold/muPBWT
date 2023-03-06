@@ -209,7 +209,8 @@ Note that total building times are not printed due to the fact that all the comp
 The pipeline for 1000 Genome Project phase 3 data is available at [dlcgold/muPBWT-1KGP-workflow](https://github.com/dlcgold/muPBWT-1KGP-workflow).
 
 ## Reference
-μ-PBWT results are currently available on a [bioRxiv preprint] (https://www.biorxiv.org/content/10.1101/2023.02.15.528658v1).
+μ-PBWT results are currently available on a [bioRxiv preprint](https://www.biorxiv.org/content/10.1101/2023.02.15.528658v1).
+
 Bibtex:
 ```
 @article {Cozzi2023.02.15.528658,
