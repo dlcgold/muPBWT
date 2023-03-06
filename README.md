@@ -208,4 +208,20 @@ Note that total building times are not printed due to the fact that all the comp
 
 The pipeline for 1000 Genome Project phase 3 data is available at [dlcgold/muPBWT-1KGP-workflow](https://github.com/dlcgold/muPBWT-1KGP-workflow).
 
-WIP
+## Reference
+μ-PBWT results are currently available on a [bioRxiv preprint] (https://www.biorxiv.org/content/10.1101/2023.02.15.528658v1).
+Bibtex:
+```
+@article {Cozzi2023.02.15.528658,
+	author = {Cozzi, Davide and Rossi, Massimiliano and Rubinacci, Simone and K{\"o}ppl, Dominik and Boucher, Christina and Bonizzoni, Paola},
+	title = {μ-PBWT: Enabling the Storage and Use of UK Biobank Data on a Commodity Laptop},
+	elocation-id = {2023.02.15.528658},
+	year = {2023},
+	doi = {10.1101/2023.02.15.528658},
+	publisher = {Cold Spring Harbor Laboratory},
+	abstract = {Motivation The positional Burrows-Wheeler Transform (PBWT) has been introduced as a key data structure for indexing haplotype sequences with the main purpose of finding maximal haplotype matches in h sequences containing w variation sites in -time with a significant improvement over classical quadratic time approaches. However the original PBWT data structure does not allow queries over the modern biobank panels of haplotypes consisting of several millions of haplotypes, as they must be kept entirely in memory.Results In this paper, we present a method for constructing the run-length encoded PBWT for memory efficient haplotype matching. We implement our method, which we refer to as μ-PBWT, and evaluate it on datasets of 1000 Genome Project and UK Biobank data. Our experiments demonstrate that the μ-PBWT reduces the memory usage up to a factor of 25 compared to the best current PBWT-based indexing. In particular, μ-PBWT produces an index that stores high-coverage whole genome sequencing data of chromosome 20 in half the space of its BCF file. In addition, μ-PBWT is able to index a dataset with 2 million haplotypes and 2.3 million sites in 4 GB of space, which can be uploaded in 20 seconds on a commodity laptop. μ-PBWT is an adaptation of techniques for the run-length compressed BWT for the PBWT (RLPBWT) and it is based on keeping in memory only a small representation of the RLPBWT that still allows the efficient computation of set maximal matches (SMEMs) over the original panel.Availability Our implementation is open source and available at https://github.com/dlcgold/muPBWT. The binary is available at https://bioconda.github.io/recipes/mupbwt/README.htmlContact Paola Bonizzoni paola.bonizzoni{at}unimib.itCompeting Interest StatementThe authors have declared no competing interest.},
+	URL = {https://www.biorxiv.org/content/early/2023/02/16/2023.02.15.528658},
+	eprint = {https://www.biorxiv.org/content/early/2023/02/16/2023.02.15.528658.full.pdf},
+	journal = {bioRxiv}
+}
+```
