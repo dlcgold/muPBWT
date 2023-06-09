@@ -1,0 +1,9 @@
+url_path,views_total,views_unique
+/dlcgold/muPBWT,20,3
+/dlcgold/muPBWT/tree/main/sample_data,10,2
+/dlcgold/muPBWT/blob/main/sample_data/panel.bcf,4,2
+/dlcgold/muPBWT/tree/main/script,3,1
+/dlcgold/muPBWT/tree/main/thirdparty,3,1
+/dlcgold/muPBWT/blob/main/thirdparty/CMakeLists.txt,2,1
+/dlcgold/muPBWT/tree/main/include,2,1
+/dlcgold/muPBWT/tree/main/lib,2,1
