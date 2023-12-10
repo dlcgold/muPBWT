@@ -15,6 +15,7 @@ add_executable(mupbwt mupbwt.cpp
         include/exceptions.h
         include/phi_ds.h
         lib/ms.cpp include/ms.h
+        lib/ms_k.cpp include/ms_k.h
         lib/ms_matches.cpp include/ms_matches.h
         lib/rl_column.cpp include/rl_column.h
         include/rlpbwt_int.h)
