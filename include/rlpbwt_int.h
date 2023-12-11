@@ -256,41 +256,9 @@ private:
     pref = new_pref;
   }
 
-  std::pair<unsigned int, unsigned int>
+  std::pair<unsigned int, int>
   maxSubvector(const std::vector<unsigned int> &vector, int k) {
-    // std::deque<unsigned int> dq;
-    // int max_tmp = 0;
 
-    // for (unsigned int i = s; i < e + 1; ++i) {
-
-    //   while (!dq.empty() && d[i] < d[dq.back()]) {
-    //     auto c = dq.back();
-    //     dq.pop_back();
-    //     // if (c == max_tmp) {
-    //     //   max_tmp = 0;
-    //     // }
-    //   }
-
-    //   dq.push_back(i);
-    //   // if (d[i] > d[max_tmp]) {
-    //   //   max_tmp = i;
-    //   // }
-    //   while (!dq.empty() && dq.front() < i - k + 1) {
-    //     auto c = dq.front();
-    //     dq.pop_front();
-    //     // if (c == max_tmp) {
-    //     //   max_tmp = 0;
-    //     // }
-    //   }
-
-    //   if (!dq.empty() && d[dq.front()] > d[max_tmp]) {
-    //     max_tmp = dq.front();
-    //   }
-    // }
-
-    // return {max_tmp, std::max(max_tmp, k - 1)};
-    //
-    //
     if (k > vector.size()) {
       k = vector.size();
     }
@@ -334,7 +302,8 @@ private:
     return {max_min_value, max_min_index};
   }
 
-  void update_k_intervals(const std::vector<unsigned int> &div) {
+  void update_k_intervals(const std::vector<unsigned int> &div,
+                          bool verbose = false) {
     auto h = div.size();
     // for (unsigned int j = 0; j < div.size(); j++) {
     //   std::cout << div[j] << " ";
@@ -363,32 +332,38 @@ private:
       }
       std::vector<unsigned int> subvector(div.begin() + a, div.begin() + e + 1);
       auto sub_m = maxSubvector(subvector, this->k_smem);
-      sub_m.second += a;
-      // this->cols.back().i_k[i] = a - (sub_m.second - (this->k_smem - 1));
-      this->cols.back().i_k[i] =
-          sub_m.second >= lf_pos ? 0 : lf_pos - sub_m.second;
-      this->cols.back().l_k[i] = sub_m.first;
-
-      // std::cout << "col s " << this->cols.size() - 1 << " p "
-      //           << this->cols.back().p[i] << " lf_pos " << lf_pos << " i_k "
-      //           << this->cols.back().i_k[i] << " a " << a << " e " << e
-      //           << " sub_m " << sub_m.first << " sub_m.second " <<
-      //           sub_m.second
-      //           << " div[] " << div[sub_m.first] << " using "
-      //           << this->cols.back().p[i] << " for "
-      //           << get_next_char(this->cols.back().zero_first,
-      //                            index_to_run(this->cols.back().p[i],
-      //                                         this->cols.size() - 1))
-      //           << " -> ";
-      // for (unsigned int j = 0; j < subvector.size(); j++) {
-      //   std::cout << subvector[j] << " ";
-      // }
-      // std::cout << "\n";
+      if (sub_m.second != -1) {
+        sub_m.second += a;
+        // this->cols.back().i_k[i] = a - (sub_m.second - (this->k_smem - 1));
+        this->cols.back().i_k[i] =
+            sub_m.second >= lf_pos ? 0 : lf_pos - sub_m.second;
+        this->cols.back().l_k[i] = sub_m.first;
+      } else {
+        this->cols.back().i_k[i] = 0;
+        this->cols.back().l_k[i] = 0;
+      }
+      if (verbose) {
+        std::cout << "col s " << this->cols.size() - 1 << " p "
+                  << this->cols.back().p[i] << " lf_pos " << lf_pos << " a "
+                  << a << " e " << e << " sub_m " << sub_m.first
+                  << " sub_m.second " << sub_m.second << " i_k "
+                  << this->cols.back().i_k[i] << " l_k "
+                  << this->cols.back().l_k[i] << " using "
+                  << this->cols.back().p[i] << " for "
+                  << get_next_char(this->cols.back().zero_first,
+                                   index_to_run(this->cols.back().p[i],
+                                                this->cols.size() - 1))
+                  << " -> ";
+        for (unsigned int j = 0; j < subvector.size(); j++) {
+          std::cout << subvector[j] << " ";
+        }
+        std::cout << "\n";
+      }
       if (this->cols.back().i_k[i] > this->height) {
         std::cout << "col " << i << " lf_pos " << lf_pos << " i_k "
                   << this->cols.back().i_k[i] << " a " << a << " e " << e
                   << " sub_m " << sub_m.first << " sub_m.second "
-                  << sub_m.second << " div[] " << div[sub_m.first] << "\n";
+                  << sub_m.second << " div[] " << sub_m.first << "\n";
         exit(1);
       }
       lf_pos = 0;
@@ -422,26 +397,33 @@ private:
       std::vector<unsigned int> subvector2(div.begin() + a,
                                            div.begin() + e + 1);
       sub_m = maxSubvector(subvector2, this->k_smem);
-      sub_m.second += a;
-      // this->cols.back().i_k[i] = a - (sub_m.second - (this->k_smem - 1));
-      this->cols.back().i_e_k[i] =
-          sub_m.second >= lf_pos ? 0 : lf_pos - sub_m.second;
-      this->cols.back().l_e_k[i] = sub_m.first;
-      // std::cout << "col e " << this->cols.size() - 1 << " p "
-      //           << this->cols.back().p[i] << " lf_pos " << lf_pos << " i_k "
-      //           << this->cols.back().i_e_k[i] << " a " << a << " e " << e
-      //           << " sub_m " << sub_m.first << " sub_m.second " <<
-      //           sub_m.second
-      //           << " div[] " << div[sub_m.first] << " -> ";
-      // for (unsigned int j = 0; j < subvector2.size(); j++) {
-      //   std::cout << subvector2[j] << " ";
-      // }
-      // std::cout << "\n";
+      if (sub_m.second != -1) {
+        sub_m.second += a;
+        // this->cols.back().i_k[i] = a - (sub_m.second - (this->k_smem - 1));
+        this->cols.back().i_e_k[i] =
+            sub_m.second >= lf_pos ? 0 : lf_pos - sub_m.second;
+        this->cols.back().l_e_k[i] = sub_m.first;
+      } else {
+        this->cols.back().i_e_k[i] = 0;
+        this->cols.back().l_e_k[i] = 0;
+      }
+      if (verbose) {
+        std::cout << "col e " << this->cols.size() - 1 << " p "
+                  << this->cols.back().p[i] << " lf_pos " << lf_pos << " a "
+                  << a << " e " << e << " sub_m " << sub_m.first
+                  << " sub_m.second " << sub_m.second << " i_e_k "
+                  << this->cols.back().i_e_k[i] << " l_e_k "
+                  << this->cols.back().l_e_k[i] << " -> ";
+        for (unsigned int j = 0; j < subvector2.size(); j++) {
+          std::cout << subvector2[j] << " ";
+        }
+        std::cout << "\n";
+      }
       if (this->cols.back().i_e_k[i] > this->height) {
         std::cout << "col " << i << " lf_pos " << lf_pos << " i_k "
                   << this->cols.back().i_e_k[i] << " a " << a << " e " << e
                   << " sub_m " << sub_m.first << " sub_m.second "
-                  << sub_m.second << " div[] " << div[sub_m.first] << "\n";
+                  << sub_m.second << " div[] " << sub_m.first << "\n";
         exit(1);
       }
 
@@ -859,7 +841,7 @@ public:
           this->cols.emplace_back(col);
           rlpbwt_int::update(new_column, pref, div);
           if (k_smem > 1) {
-            rlpbwt_int::update_k_intervals(div);
+            rlpbwt_int::update_k_intervals(div, verbose);
           }
           last_col = new_column;
           count++;
@@ -1097,10 +1079,14 @@ public:
       // save every match from matching statistics (when we have a "peak" in
       // ms len vector)
       for (unsigned int i = 0; i < ms.len.size(); i++) {
-        if ((i != ms.len.size() - 1 && ms.len[i] > 0 &&
-             ms.len[i] >= ms.len[i + 1]) ||
-            (i == ms.len.size() - 1 && ms.len[i] != 0)) {
-          ms_matches.basic_matches.emplace_back(ms.row[i], ms.len[i], i);
+        auto len_i = std::min(ms.len[i], ms.len_supp[i]);
+        auto len_j = 0;
+        if (i != ms.len.size() - 1) {
+          len_j = std::min(ms.len[i + 1], ms.len_supp[i + 1]);
+        }
+        if ((i != ms.len.size() - 1 && len_i > 0 && len_i >= len_j) ||
+            (i == ms.len.size() - 1 && len_i != 0)) {
+          ms_matches.basic_matches.emplace_back(ms.row[i], len_i, i);
         }
       }
       // compute every row that are matching if required
@@ -1159,11 +1145,14 @@ public:
 
       // std::cout << "processed " << i << "\r";
       if (verbose) {
-        std::cout << "at " << i << ": " << curr_run << " "
-                  << this->cols[i].t[curr_run] << "\n";
-        std::cout << curr_index << " " << curr_run << " " << curr_pos << " "
-                  << symbol << "\n";
-        std::cout << "i_r " << index_to_run(s_index, i) << "\n";
+        std::cout << "\nat " << i << ": "
+                  << " threshold  " << this->cols[i].t[curr_run] << "\n";
+        std::cout << "curr index " << curr_index << " curr run " << curr_run
+                  << " curr pos " << curr_pos << " symb " << symbol << "\n";
+        std::cout << "sindex " << s_index << " run sindex "
+                  << index_to_run(s_index, i) << "\n";
+        std::cout << "sindex + k " << s_index + k_smem - 1 << " run sindex + k "
+                  << index_to_run(s_index + k_smem - 1, i) << "\n";
       }
       // a lot of cases:
       // - if the pointer in the RLPBWT match the symbol in the query
@@ -1176,7 +1165,7 @@ public:
       //   exists), to jump
       //
       //
-      if (query[i] == symbol &&
+      if (s_index + k_smem - 1 < this->height && query[i] == symbol &&
           index_to_run(s_index, i) == index_to_run(s_index + k_smem - 1, i)) {
         if (verbose) {
           std::cout << "match full:\n";
@@ -1201,6 +1190,36 @@ public:
           if (verbose) {
             std::cout << "new: " << curr_index << " " << s_index << " "
                       << curr_run << " " << curr_pos << " " << symbol << "\n";
+          }
+        }
+      } else if ((query[i] == '0' && this->cols[i].count_0 < k_smem) ||
+                 (query[i] == '1' &&
+                  this->height - this->cols[i].count_0 < k_smem)) {
+        if (verbose) {
+          std::cout << "no enough k mismatch\n";
+        }
+        // report in matching statistics row vector using panel
+        // height as sentinel
+        ms.row[i] = this->height;
+        ms.row_supp[i] = this->height;
+        ms_supp[i] = this->height;
+        ms.len[i] = 0;
+        ms.len_supp[i] = 0;
+        // update index, run, symbol (as explained before) if we are
+        // not at the end
+        if (i != query.size() - 1) {
+          curr_pos = static_cast<unsigned int>(
+              this->cols[i + 1]
+                  .sample_end[this->cols[i + 1].sample_end.size() - 1]);
+          curr_index = this->height - 1;
+          s_index =
+              curr_index -
+              this->cols[i + 1].i_k[this->cols[i + 1].sample_end.size() - 1];
+          curr_run = index_to_run(curr_index, i + 1);
+          symbol = get_next_char(this->cols[i + 1].zero_first, curr_run);
+          if (verbose) {
+            std::cout << "update: " << curr_index << " " << curr_pos << " "
+                      << symbol << "\n";
           }
         }
       } else {
@@ -1257,8 +1276,13 @@ public:
             // report in matching statistics row vector
             ms.row[i] = curr_pos;
             // ms.row_supp[i] = lf(i, s_index, query[i]);
-            ms.row_supp[i] =
-                curr_index - this->cols[i].i_e_k[index_to_run(curr_index, i)];
+            if (verbose) {
+              std::cout << "curr_index " << curr_index << "i_k "
+                        << this->cols[i].i_e_k[index_to_run(curr_index, i)]
+                        << "\n";
+            }
+            ms.row_supp[i] = lf(i, curr_index, query[i]) -
+                             this->cols[i].i_e_k[index_to_run(curr_index, i)];
             ms_supp[i] = curr_index;
             int tmp_index = (int)i;
             unsigned int len = 0;
@@ -1281,7 +1305,11 @@ public:
             //  update index, run, symbol if we are not at the end
             if (i != query.size() - 1) {
               curr_index = lf(i, curr_index, query[i]);
-              s_index = curr_index - this->cols[i].i_k[curr_run - 1];
+              if (verbose) {
+                std::cout << "update sindex " << curr_index << " "
+                          << this->cols[i].i_e_k[curr_run - 1] << "\n";
+              }
+              s_index = curr_index - this->cols[i].i_e_k[curr_run - 1];
               curr_run = index_to_run(curr_index, i + 1);
               symbol = get_next_char(this->cols[i + 1].zero_first, curr_run);
               if (verbose) {
@@ -1301,6 +1329,8 @@ public:
 
             // report in matching statistics row vector
             ms.row[i] = curr_pos;
+            ms.row_supp[i] = lf(i, curr_index, query[i]) -
+                             this->cols[i].i_k[index_to_run(curr_index, i)];
             ms_supp[i] = curr_index;
             int tmp_index = (int)i;
             unsigned int len = 0;
@@ -1337,12 +1367,16 @@ public:
         } else {
           if (verbose) {
             std::cout << "match not full:\n";
+            std::cout << "curr index " << curr_index << " curr run " << curr_run
+                      << " curr pos " << curr_pos << " sizerun "
+                      << this->cols[i].p.size() - 1 << "\n";
           }
           // if (curr_index == this->height - 1 ||
           //     (curr_run != this->cols[i].p.size() - 1 &&
           //      curr_index == this->cols[i].p[curr_run + 1] - 1)) {
-          if (curr_run != this->cols[i].p.size() - 1 &&
-              curr_index - 1 == this->cols[i].p[curr_run + 1] - 1) {
+          if ((curr_index == this->height - 1) ||
+              (curr_run != this->cols[i].p.size() - 1 &&
+               curr_index == this->cols[i].p[curr_run + 1] - 1)) {
             if (verbose) {
               std::cout << "match end:\n";
             }
@@ -1387,6 +1421,7 @@ public:
               ms.len[i] = ms.len[i - 1] + 1;
               ms.len_supp[i] = this->cols[i].l_e_k[curr_run];
             }
+
             // ms.len[i] = std::min(ms.len[i], ms.len_supp[i]);
             unsigned int b = s_index;
             unsigned int b_i = s_index;
@@ -1412,25 +1447,33 @@ public:
                   break;
                 }
               }
-              ms.len[i] = std::min(ms.len[i], lce(curr_index, b_i, i));
+            }
+            ms.len[i] = std::min(ms.len[i], lce(curr_index, b_i, i));
+            if (verbose) {
+              std::cout << i << " lce: " << lce(curr_index, b_i, i) << " "
+                        << curr_index << " " << b_i << "\n";
+              std::cout << "from " << ms.row[i] << " to " << b << "\n";
+            }
+            auto r_b_i = index_to_run(b_i, i);
+            ms.row[i] = b;
+            ms.row_supp[i] = lf(i, b_i, query[i]) -
+                             this->cols[i].i_e_k[index_to_run(b_i, i)];
+            ms.len_supp[i] = this->cols[i].l_e_k[r_b_i];
+            ms_supp[i] = b_i;
+            if (i != query.size() - 1) {
+              curr_index = lf(i, b_i, query[i]);
+              s_index = curr_index - this->cols[i].i_e_k[r_b_i];
               if (verbose) {
-                std::cout << i << " lce: " << lce(curr_index, b_i, i) << " "
-                          << curr_index << " " << b_i << "\n";
+                std::cout << "curr " << curr_index << " offset "
+                          << this->cols[i].i_e_k[curr_run] << "\n";
               }
-              ms.row[i] = b;
-              ms.row_supp[i] = b_i - this->cols[i].i_e_k[index_to_run(b_i, i)];
-              ms.len_supp[i] = this->cols[i].l_e_k[index_to_run(b_i, i)];
-              ms_supp[i] = b_i;
-              if (i != query.size() - 1) {
-                curr_index = lf(i, curr_index, query[i]);
-                s_index = curr_index - this->cols[i].i_e_k[curr_run];
-                curr_run = index_to_run(curr_index, i + 1);
-                symbol = get_next_char(this->cols[i + 1].zero_first, curr_run);
-                if (verbose) {
-                  std::cout << "new: " << curr_index << " " << s_index << " "
-                            << curr_run << " " << curr_pos << " " << symbol
-                            << "\n";
-                }
+
+              curr_run = index_to_run(curr_index, i + 1);
+              symbol = get_next_char(this->cols[i + 1].zero_first, curr_run);
+              if (verbose) {
+                std::cout << "new: " << curr_index << " " << s_index << " "
+                          << curr_run << " " << curr_pos << " " << symbol
+                          << "\n";
               }
             }
           }

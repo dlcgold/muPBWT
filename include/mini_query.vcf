@@ -1,0 +1,17 @@
+##fileformat=VCFv4.2
+#CHROM  POS ID  REF ALT QUAL    FILTER  INFO    FORMAT 0 
+. 0 0 x y . . . GT 0
+. 1 1 x y . . . GT 1
+. 2 2 x y . . . GT 0
+. 3 3 x y . . . GT 0
+. 4 4 x y . . . GT 1
+. 5 5 x y . . . GT 0
+. 6 6 x y . . . GT 1
+. 7 7 x y . . . GT 0
+. 8 8 x y . . . GT 0
+. 9 9 x y . . . GT 0
+. 10 10 x y . . . GT 1
+. 11 11 x y . . . GT 1
+. 12 12 x y . . . GT 1
+. 13 13 x y . . . GT 0
+. 14 14 x y . . . GT 1
