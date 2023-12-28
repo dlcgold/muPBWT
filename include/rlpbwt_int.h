@@ -1048,13 +1048,13 @@ public:
 
         this->cols.emplace_back(col);
         rlpbwt_int::update(new_column, pref, div);
-        if (k_smem > 1 && count >= 1) {
-          rlpbwt_int::update_k_intervals(div);
-        } else {
+        if (k_smem <= 1) {
           this->cols.back().i_k.resize(0);
           this->cols.back().l_k.resize(0);
           this->cols.back().i_e_k.resize(0);
           this->cols.back().l_e_k.resize(0);
+        } else if (k_smem > 1 && count >= 1) {
+          rlpbwt_int::update_k_intervals(div);
         }
         last_col = new_column;
         count++;
@@ -1795,6 +1795,7 @@ public:
             ms_supp[i] = b_i;
             if (i != query.size() - 1) {
               curr_index = lf(i, b_i, query[i]);
+
               if (end) {
                 s_index = curr_index - this->cols[i].i_e_k[r_b_i];
               } else {
