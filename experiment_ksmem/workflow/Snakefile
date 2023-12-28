@@ -1,0 +1,71 @@
+from snakemake.utils import min_version
+import os
+
+##### config file #####
+configfile: "config/config.yaml"
+
+##### set minimum snakemake version #####
+min_version("6.4.1")
+
+n_queries = config["params"]["queries"]
+software_tmp = config["folder"]["software"]
+input_tmp = config["folder"]["input"]
+output_tmp = config["folder"]["output"]
+
+software_folder = f"resources_{n_queries}/{software_tmp}"
+input_folder = f"resources_{n_queries}/{input_tmp}"
+output_folder = f"resources_{n_queries}/{output_tmp}"
+results_folder = config["folder"]["res"]
+
+syllable_folder = os.path.join(software_folder, "Syllable-PBWT")
+
+TOOL = [
+#    "pbwt",
+    "mupbwt",
+#    "syllable",
+#    "bgt"
+];
+#APPROACHES_PBWT = [
+#    "pbwtIndexed",
+#    "pbwtDynamic",
+#];
+APPROACHES_MUPBWT = [
+    "load"
+];
+#APPROACHES_SYLLABLE = [
+#    "fifo"
+#];
+NAME_RLPBWT = [
+ "mupbwt"
+]
+
+
+#PANELS= ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22']
+
+PANELS= ['21', '22']
+KS = ['10', '100', '500', '1000', '2500']
+
+##### include rules #####
+# global variables and download input
+include: "rules/common.smk"
+# PBWT rules
+#include: "rules/pbwt.smk"
+# muPBWT rules
+include: "rules/mupbwt.smk"
+# Syllable-PBWT rules 
+#include: "rules/syllable.smk"
+# bgt rules
+#include: "rules/bgt.smk"
+# merge results and make plots/tables
+#include: "rules/results.smk"
+
+
+##### target rules #####
+rule all:
+    input:
+        os.path.join(results_folder, "plots", "1kgb.pdf"),
+        os.path.join(results_folder, "plots", "1kgb_nodu.pdf"),
+        os.path.join(results_folder, "plots", "components.pdf"),
+        os.path.join(results_folder, "plots", "files_size.pdf"),
+        os.path.join(results_folder, "tables", "mupbwt_build.tex"),
+        os.path.join(results_folder, "tables", "mupbwt_compare.tex")

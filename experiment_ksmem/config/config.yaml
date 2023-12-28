@@ -1,0 +1,7 @@
+folder :
+  software : "software" 
+  res : "results"
+  input : "input"
+  output : "output"
+params :
+  queries : "50"
