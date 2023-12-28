@@ -21,7 +21,6 @@
 #include "ms_matches.h"
 #include "phi_ds.h"
 #include "rl_column.h"
-#include "utils.h"
 
 /**
  * @brief data structure for matching-statistics supported RLPBWT naive
@@ -257,81 +256,74 @@ private:
     pref = new_pref;
   }
 
-  /**
-   * @brief function to find the subvector os size k which contain the maximum
-   * minimum value
-   * @param vector input vector
-   * @param k k-value
-   */
   std::pair<unsigned int, int>
   maxSubvector(const std::vector<unsigned int> &vector, int k) {
 
-    int size = vector.size();
-    // if (k > vector.size()) {
-    //   k = vector.size();
-    // }
+    if (k > vector.size()) {
+      k = vector.size();
+    }
 
-    int val = std::numeric_limits<int>::min();
-    int ind = -1;
+    int max_min_value = std::numeric_limits<int>::min();
+    int max_min_index = -1;
+    std::deque<int> window_min_values;
 
-    std::deque<int> deq;
-
-    // using a sliding window to keep track of all the subvectors
-    for (int i = 0; i < size; ++i) {
+    for (int i = 0; i < vector.size(); ++i) {
       // Remove elements outside the current window
-      while (!deq.empty() && deq.front() < i - k + 1) {
-        deq.pop_front();
+      while (!window_min_values.empty() &&
+             window_min_values.front() < i - k + 1) {
+        window_min_values.pop_front();
       }
 
       // Remove elements in the current window that are greater than the current
       // element
-      while (!deq.empty() && vector[deq.back()] > vector[i]) {
-        deq.pop_back();
+      while (!window_min_values.empty() &&
+             vector[window_min_values.back()] > vector[i]) {
+        window_min_values.pop_back();
       }
 
       // Add the current element index to the window
-      deq.push_back(i);
+      window_min_values.push_back(i);
 
       // Check if the window is of size k
       if (i >= k - 1) {
         // The front of the deque contains the index of the minimum element in
         // the current window
-        int min_value = vector[deq.front()];
+        int min_value = vector[window_min_values.front()];
 
         // Update if the current minimum is larger than the previous maximum
         // minimum
-        if (min_value > val) {
-          val = min_value;
-          ind = i;
+        if (min_value >= max_min_value) {
+          max_min_value = min_value;
+          // max_min_index = window_min_values.front();
+          // max_min_index = window_min_values.front() - k + 1;
+          max_min_index = i;
         }
       }
     }
 
-    return {val, ind};
+    return {max_min_value, max_min_index};
   }
 
-  /**
-   * @brief function to computer k intervals anbd its min length at run boundary
-   * @param div divergence array
-   * @param verbose bool for verbose print
-   */
   void update_k_intervals(const std::vector<unsigned int> &div,
                           bool verbose = false) {
     auto h = div.size();
-
-    // iterate over every run boundary
+    // for (unsigned int j = 0; j < div.size(); j++) {
+    //   std::cout << div[j] << " ";
+    // }
+    // std::cout << "\n";
+    // std::cout << "col before " << this->cols.back().p << "\n";
     for (unsigned int i = 0; i < this->cols.back().p.size(); i++) {
-      // run-head
-
-      // perform a lf-mapping to the next column
+      // for (unsigned int j = 0; j < div.size(); j++) {
+      //   std::cout << div[j] << " ";
+      // }
+      // std::cout << "\n";
+      // auto pos = this->cols.back().p[i];
       auto lf_pos =
           rlpbwt_int::lf(this->cols.size() - 1, this->cols.back().p[i],
                          get_next_char(this->cols.back().zero_first,
                                        index_to_run(this->cols.back().p[i],
                                                     this->cols.size() - 1)));
 
-      // get the interval [lf(r)-k-2,lf(r)+k-1] eventually fixing at panel
-      // boundaries
       auto a = 0;
       if (lf_pos + 2 >= this->k_smem) {
         a = lf_pos - this->k_smem + 2;
@@ -340,31 +332,34 @@ private:
       if (lf_pos - 1 + this->k_smem < h) {
         e = lf_pos + this->k_smem - 1;
       }
-      // get the subvector of div and compute the subsubvector os size k-1 with
-      // max min value
+
+      // if (lf_pos + 2 < this->k_smem || lf_pos - 1 + this->k_smem >= h) {
+      //   this->cols.back().i_k[i] = 0;
+      //   this->cols.back().l_k[i] = 0;
+      // } else {
+      //   auto a = lf_pos - this->k_smem + 2;
+      //   auto e          = lf_pos + this->k_smem - 1;
       std::vector<unsigned int> subvector(div.begin() + a, div.begin() + e + 1);
       auto sub_m = maxSubvector(subvector, this->k_smem - 1);
       if (verbose) {
         std::cout << "a " << a << " e " << e << " sub_m.first " << sub_m.first
                   << " sub_m.second " << sub_m.second << "\n";
       }
-      // sentiler is subvector short than k-1
-      if (e - a + 1 < this->k_smem - 1) {
+      if (e - a + 1 < this->k_smem) {
+        // std::cerr << "WTF " << a << " " << e << " " << e - a + 1 << " "
+        //           << this->k_smem << " " << lf_pos << "\n";
+        // std::cerr << "a " << a << " e " << e << " sub_m.first " <<
+        // sub_m.first
+        //           << " sub_m.second " << sub_m.second << "\n";
+        // exit(1);
         sub_m.second = -1;
       }
-
-      // compute the offset between the starting point of the subvector and lf
-      // and the len
       if (sub_m.second != -1) {
+        // sub_m.second += a;
         sub_m.second = (sub_m.second + a) - (k_smem - 2);
-        if (sub_m.second > 0) {
-          sub_m.second--;
-        }
+        // this->cols.back().i_k[i] = a - (sub_m.second - (this->k_smem - 1));
         this->cols.back().i_k[i] =
-            static_cast<unsigned int>(sub_m.second) >= lf_pos
-                ? 0
-                : lf_pos - sub_m.second;
-
+            sub_m.second >= lf_pos ? 0 : lf_pos - sub_m.second;
         this->cols.back().l_k[i] = sub_m.first;
       } else {
         this->cols.back().i_k[i] = 0;
@@ -389,23 +384,33 @@ private:
         std::cout << "\n";
       }
 
-      // run-tail
-
-      // get lf checing if we are atthe end of the panel the do as before
+      if (this->cols.back().i_k[i] > this->height) {
+        std::cout << "col " << i << " lf_pos " << lf_pos << " i_k "
+                  << this->cols.back().i_k[i] << " a " << a << " e " << e
+                  << " sub_m " << sub_m.first << " sub_m.second "
+                  << sub_m.second << " div[] " << sub_m.first << "\n";
+        exit(1);
+        // }
+      }
       lf_pos = 0;
       if (i != this->cols.back().p.size() - 1) {
+        // pos = this->cols.back().p[i + 1] - 1;
         lf_pos = rlpbwt_int::lf(
             this->cols.size() - 1, this->cols.back().p[i + 1] - 1,
             get_next_char(this->cols.back().zero_first,
                           index_to_run(this->cols.back().p[i + 1] - 1,
                                        this->cols.size() - 1)));
       } else {
+        // pos = this->height - 1;
         lf_pos =
             rlpbwt_int::lf(this->cols.size() - 1, this->height - 1,
                            get_next_char(this->cols.back().zero_first,
                                          index_to_run(this->height - 1,
                                                       this->cols.size() - 1)));
       }
+      // lf_pos = rlpbwt_int::lf(this->cols.size() - 1, pos,
+      //                         get_next_char(this->cols.back().zero_first,
+      //                         pos));
 
       a = 0;
       if (lf_pos + 2 >= this->k_smem) {
@@ -415,7 +420,16 @@ private:
       if (lf_pos - 1 + this->k_smem < h) {
         e = lf_pos + this->k_smem - 1;
       }
-
+      // if (e - a + 1 < this->k_smem) {
+      //   std::cerr << "WTF " << a << " " << e << " " << e - a + 1 << " "
+      //             << this->k_smem << " " << lf_pos << "\n";
+      // }
+      // if (lf_pos + 2 < this->k_smem || lf_pos - 1 + this->k_smem >= h) {
+      //   this->cols.back().i_e_k[i] = 0;
+      //   this->cols.back().l_e_k[i] = 0;
+      // } else {
+      // auto a = lf_pos - this->k_smem + 2;
+      // auto e = lf_pos + this->k_smem - 1;
       std::vector<unsigned int> subvector2(div.begin() + a,
                                            div.begin() + e + 1);
       sub_m = maxSubvector(subvector2, this->k_smem - 1);
@@ -424,19 +438,23 @@ private:
                   << " sub_m.second " << sub_m.second << "\n";
       }
 
-      if (e - a + 1 < this->k_smem - 1) {
+      if (e - a + 1 < this->k_smem) {
+        // std::cerr << "WTF " << a << " " << e << " " << e - a + 1 << " "
+        //           << this->k_smem << " " << lf_pos << "\n";
+        // std::cerr << "a " << a << " e " << e << " sub_m.first " <<
+        // sub_m.first
+        //           << " sub_m.second " << sub_m.second << "\n";
+        // exit(1);
         sub_m.second = -1;
       }
       if (sub_m.second != -1) {
+        // sub_m.second += a;
         sub_m.second = (sub_m.second + a) - (k_smem - 2);
-        if (sub_m.second > 0) {
-          sub_m.second--;
-        }
+        //  this->cols.back().i_k[i] = a - (sub_m.second - (this->k_smem - 1));
         this->cols.back().i_e_k[i] =
-            static_cast<unsigned int>(sub_m.second) >= lf_pos
-                ? 0
-                : lf_pos - sub_m.second;
-
+            sub_m.second >= lf_pos ? 0 : lf_pos - sub_m.second;
+        // this->cols.back().i_e_k[i] = sub_m.second >= a ? 0 : a -
+        // sub_m.second;
         this->cols.back().l_e_k[i] = sub_m.first;
       } else {
         this->cols.back().i_e_k[i] = 0;
@@ -454,13 +472,29 @@ private:
         }
         std::cout << "\n";
       }
-    }
+      if (this->cols.back().i_e_k[i] > this->height) {
+        std::cout << "col " << i << " lf_pos " << lf_pos << " i_k "
+                  << this->cols.back().i_e_k[i] << " a " << a << " e " << e
+                  << " sub_m " << sub_m.first << " sub_m.second "
+                  << sub_m.second << " div[] " << sub_m.first << "\n";
+        exit(1);
+      }
 
-    // bit-compress all the values
+      // std::cout << "lf_pos " << lf_pos << " a " << a << " e " << e << "
+      // sub_m
+      // "
+      //           << sub_m.first << " div_m " << div_m << " off " << s <<
+      //           "\n";
+      //  std::cout << a + off << " " << a + off + k_smem - 1 << "\n";
+      // }
+    }
+    // std::cout << "------------------\n";
+    //  std::cout << "col after " << this->cols.back().p << "\n";
     sdsl::util::bit_compress(this->cols.back().i_k);
     sdsl::util::bit_compress(this->cols.back().l_k);
     sdsl::util::bit_compress(this->cols.back().i_e_k);
     sdsl::util::bit_compress(this->cols.back().l_e_k);
+    // std::cout << "------------------\n";
   }
   /**
    * @brief function to compute the lf mapping, w(i, s) function in Durbin
@@ -925,11 +959,6 @@ public:
           rlpbwt_int::update(new_column, pref, div);
           if (k_smem > 1) {
             rlpbwt_int::update_k_intervals(div, verbose);
-          } else {
-            this->cols.back().i_k.resize(0);
-            this->cols.back().l_k.resize(0);
-            this->cols.back().i_e_k.resize(0);
-            this->cols.back().l_e_k.resize(0);
           }
           last_col = new_column;
           count++;
@@ -1050,11 +1079,6 @@ public:
         rlpbwt_int::update(new_column, pref, div);
         if (k_smem > 1 && count >= 1) {
           rlpbwt_int::update_k_intervals(div);
-        } else {
-          this->cols.back().i_k.resize(0);
-          this->cols.back().l_k.resize(0);
-          this->cols.back().i_e_k.resize(0);
-          this->cols.back().l_e_k.resize(0);
         }
         last_col = new_column;
         count++;
@@ -1231,11 +1255,6 @@ public:
     }
   }
 
-  /**
-   * @brief function to compute longer run in a column with a certain symbol
-   * @param col_index column index
-   * @param symbol run symbol
-   */
   unsigned int best_run(unsigned int col_index, char symbol) {
     auto best_run_index = this->height;
     auto best_run_len = 0;
@@ -1272,11 +1291,6 @@ public:
     return 0;
   }
 
-  /**
-   * @brief function to compute length of a run
-   * @param col_index column index
-   * @param curr_run run index
-   */
   unsigned int run_length(unsigned int col_index, unsigned int curr_run) {
     auto len_tmp = 0;
     if (curr_run == this->cols[col_index].p.size() - 1) {
@@ -1301,15 +1315,10 @@ public:
   compute_ms_k(const std::string &query, bool extend_matches = false,
                bool verbose = false) {
 
-    // TODO complete comments
     // compute the match iff |query| is equal to the width of the panel
     if (query.size() != this->width) {
       std::cout << query.size() << " != " << this->width << "\n";
       throw NotEqualLengthException{};
-    }
-
-    if (extend_matches && !this->is_extended) {
-      // this->extend();
     }
 
     // initialize matching statistics
@@ -1364,11 +1373,12 @@ public:
       //   exists), to jump
       //
       //
-      auto r_s = index_to_run(s_index, i);
-      if (reset == false && query[i] == symbol &&
+      if (query[i] == symbol &&
           ((s_index + k_smem - 1 < this->height &&
-            query[i] == get_next_char(this->cols[i].zero_first, r_s) &&
-            r_s == index_to_run(s_index + k_smem - 1, i))
+            query[i] == get_next_char(this->cols[i].zero_first,
+                                      index_to_run(s_index, i)) &&
+            index_to_run(s_index, i) == index_to_run(s_index + k_smem - 1, i) &&
+            reset == false)
            // ||
            // (query[i] == get_next_char(this->cols[i].zero_first,
            //                            index_to_run(s_index, i)) &&
@@ -1378,7 +1388,7 @@ public:
           std::cout << "match full:\n";
         }
         ms.row[i] = curr_pos;
-        // ms.row_supp[i] = s_index;
+        ms.row_supp[i] = s_index;
         ms_supp[i] = curr_index;
 
         if (i == 0) {
@@ -1403,15 +1413,16 @@ public:
       } else if ((query[i] == '0' && this->cols[i].count_0 < k_smem) ||
                  (query[i] == '1' &&
                   this->height - this->cols[i].count_0 < k_smem) ||
-                 (s_index + k_smem - 1 >= this->height &&
-                  query[i] != get_next_char(this->cols[i].zero_first, r_s))) {
+                 (query[i] != get_next_char(this->cols[i].zero_first,
+                                            index_to_run(s_index, i)) &&
+                  s_index + k_smem - 1 >= this->height)) {
         if (verbose) {
           std::cout << "no enough k mismatch/oob k\n";
         }
         // report in matching statistics row vector using panel
         // height as sentinel
         ms.row[i] = this->height;
-        // ms.row_supp[i] = this->height;
+        ms.row_supp[i] = this->height;
         ms_supp[i] = this->height;
         ms.len[i] = 0;
         ms.len_supp[i] = 0;
@@ -1425,7 +1436,9 @@ public:
           curr_index = curr_run != this->cols[i + 1].p.size() - 1
                            ? this->cols[i + 1].p[curr_run + 1] - 1
                            : this->height - 1;
+          // //            std::cout << "curr_pos " << curr_pos << "\n";
 
+          // symbol = get_next_char(this->cols[i + 1].zero_first, curr_run);
           if (verbose) {
             std::cout << lf(i + 1, curr_index, query[i + 1]) << " - "
                       << this->cols[i + 1].i_e_k[curr_run] << " = "
@@ -1436,6 +1449,22 @@ public:
           s_index = lf(i + 1, curr_index, query[i + 1]) -
                     this->cols[i + 1].i_e_k[curr_run];
 
+          // curr_pos =
+          //     static_cast<unsigned int>(this->cols[i +
+          //     1].sample_beg[curr_run]);
+          // curr_index = static_cast<unsigned int>(this->cols[i +
+          // 1].p[curr_run]);
+          // // curr_pos = static_cast<unsigned int>(
+          // //     this->cols[i + 1]
+          // //         .sample_end[this->cols[i + 1].sample_end.size() - 1]);
+          // curr_index = this->height - 1;
+          // s_index =
+          //     curr_index -
+          //     this->cols[i + 1].i_e_k[this->cols[i + 1].sample_end.size() -
+          //     1];
+          // // s_index =
+          // //     this->cols[i + 1].p[this->cols[i + 1].sample_end.size() -
+          // 1]; curr_run = index_to_run(curr_index, i + 1);
           symbol = get_next_char(this->cols[i + 1].zero_first, curr_run);
           reset = true;
           if (verbose) {
@@ -1460,19 +1489,40 @@ public:
             // report in matching statistics row vector using panel
             // height as sentinel
             ms.row[i] = this->height;
-            // ms.row_supp[i] = this->height;
+            ms.row_supp[i] = this->height;
             ms_supp[i] = this->height;
             ms.len[i] = 0;
             ms.len_supp[i] = 0;
             // update index, run, symbol (as explained before) if we are
             // not at the end
             if (i != query.size() - 1) {
+              // curr_pos = static_cast<unsigned int>(
+              //     this->cols[i + 1]
+              //         .sample_end[this->cols[i + 1].sample_end.size() - 1]);
+              // curr_index = this->height - 1;
+              // // s_index = curr_index -
+              // //           this->cols[i + 1]
+              // //               .i_k[this->cols[i + 1].sample_end.size() - 1];
+              // s_index =
+              //     this->cols[i + 1].p[this->cols[i + 1].sample_end.size() -
+              //     1];
+              // curr_run = index_to_run(curr_index, i + 1);
+              // curr_run = best_run(i + 1, query[i + 1]);
+              // curr_pos = static_cast<unsigned int>(
+              //     this->cols[i + 1].sample_beg[curr_run]);
+              // curr_index =
+              //     static_cast<unsigned int>(this->cols[i + 1].p[curr_run]);
+              // s_index = lf(i + 1, curr_index, query[i + 1]) -
+              //           this->cols[i + 1]
+              //               .i_e_k[this->cols[i + 1].sample_end.size() - 1];
+              // symbol = get_next_char(this->cols[i + 1].zero_first, curr_run);
               curr_run = best_run(i + 1, query[i + 1]);
               curr_pos = static_cast<unsigned int>(
                   this->cols[i + 1].sample_end[curr_run]);
               curr_index = curr_run != this->cols[i + 1].p.size() - 1
                                ? this->cols[i + 1].p[curr_run + 1] - 1
                                : this->height - 1;
+              //            std::cout << "curr_pos " << curr_pos << "\n";
 
               symbol = get_next_char(this->cols[i + 1].zero_first, curr_run);
 
@@ -1507,9 +1557,8 @@ public:
                         << this->cols[i].i_e_k[index_to_run(curr_index, i)]
                         << "\n";
             }
-            // ms.row_supp[i] =
-            //    lf(i, curr_index, query[i]) - this->cols[i].i_e_k[curr_run -
-            //    1];
+            ms.row_supp[i] =
+                lf(i, curr_index, query[i]) - this->cols[i].i_e_k[curr_run - 1];
             ms_supp[i] = curr_index;
             int tmp_index = (int)i;
             unsigned int len = 0;
@@ -1558,8 +1607,8 @@ public:
 
             // report in matching statistics row vector
             ms.row[i] = curr_pos;
-            // ms.row_supp[i] = lf(i, curr_index, query[i]) -
-            //                 this->cols[i].i_k[index_to_run(curr_index, i)];
+            ms.row_supp[i] = lf(i, curr_index, query[i]) -
+                             this->cols[i].i_k[index_to_run(curr_index, i)];
             ms_supp[i] = curr_index;
             int tmp_index = (int)i;
             unsigned int len = 0;
@@ -1596,7 +1645,6 @@ public:
             }
           }
         } else {
-          int extra = (s_index + k_smem - 1) - (this->height - 1);
           if (verbose) {
             std::cout << "match not full:\n";
             std::cout << symbol << " vs " << query[i] << "\n";
@@ -1604,7 +1652,9 @@ public:
                       << " curr pos " << curr_pos << " sizerun "
                       << this->cols[i].p.size() - 1 << "\n";
           }
-
+          // if (curr_index == this->height - 1 ||
+          //     (curr_run != this->cols[i].p.size() - 1 &&
+          //      curr_index == this->cols[i].p[curr_run + 1] - 1)) {
           if ((curr_index == this->height - 1) ||
               (curr_run != this->cols[i].p.size() - 1 &&
                curr_index == this->cols[i].p[curr_run + 1] - 1)) {
@@ -1612,8 +1662,8 @@ public:
               std::cout << "match end_e\n";
             }
             ms.row[i] = curr_pos;
-            // ms.row_supp[i] =
-            //    lf(i, curr_index, query[i]) - this->cols[i].i_e_k[curr_run];
+            ms.row_supp[i] =
+                lf(i, curr_index, query[i]) - this->cols[i].i_e_k[curr_run];
             // ms.row_supp[i] = s_index;
             ms_supp[i] = curr_index;
 
@@ -1639,104 +1689,45 @@ public:
                           << "\n";
               }
             }
+            //} else if ((curr_index == 0) ||
+            //          (curr_index == this->cols[i].p[curr_run])) {
+            // if (verbose) {
+            //   std::cout << "match end_s\n";
+            // }
+            // ms.row[i] = curr_pos;
+            // ms.row_supp[i] =
+            //     lf(i, curr_index, query[i]) - this->cols[i].i_k[curr_run];
+            // // ms.row_supp[i] = s_index;
+            // ms_supp[i] = curr_index;
 
-          } else if (extra > 0 && r_s == this->cols[i].p.size() - 1 &&
-                     get_next_char(this->cols[i].zero_first, r_s) == query[i] &&
-                     r_s == index_to_run(s_index + k_smem - extra - 1, i)) {
-            if (r_s <= 2) {
-              if (verbose) {
-                std::cout << "not enough range no jump\n";
-              }
-              curr_index = this->height - 1;
-              if (curr_run != this->cols[i].p.size() - 1) {
-                curr_index = this->cols[i].p[curr_run + 1] - 1;
-              }
-              ms.row[i] =
-                  static_cast<unsigned int>(this->cols[i].sample_end[curr_run]);
+            // if (i == 0) {
+            //   ms.len[i] = 1;
+            //   ms.len_supp[i] = 1;
+            // } else {
+            //   ms.len[i] = ms.len[i - 1] + 1;
+            //   ms.len_supp[i] = this->cols[i].l_k[curr_run];
+            //   // ms.len_supp[i] = ms.len_supp[i - 1] + 1;
+            // }
+            // // ms.len[i] = std::min(ms.len[i], ms.len_supp[i]);
+            // if (i != query.size() - 1) {
+            //   curr_index = lf(i, curr_index, query[i]);
 
-              ms_supp[i] = this->cols[i].p[curr_run];
-              int tmp_index = (int)i;
-              unsigned int len = 0;
-              auto rlf = curr_index;
-              while (tmp_index >= 0 &&
-                     query[tmp_index] ==
-                         get_next_char(this->cols[tmp_index].zero_first,
-                                       index_to_run(rlf, tmp_index))) {
-                if (tmp_index > 0) {
-                  rlf = reverse_lf(tmp_index, rlf, false);
-                }
-                tmp_index--;
-                len++;
-              }
-              ms.len[i] = len;
-              ms.len_supp[i] = this->cols[i].l_e_k[curr_run];
-              // update index, run, symbol (as explained before) if we are
-              // not at the end
-              if (i != query.size() - 1) {
-                curr_index = lf(i, curr_index, query[i]);
-                s_index = curr_index - this->cols[i].i_e_k[curr_run + 1];
-                // s_index = ms_supp[i];
-                curr_run = index_to_run(curr_index, i + 1);
-                symbol = get_next_char(this->cols[i + 1].zero_first, curr_run);
-                reset = false;
-                if (verbose) {
-                  std::cout << "new: " << curr_index << " " << curr_run << " "
-                            << curr_pos << " " << symbol << "\n";
-                }
-                if (verbose) {
-                  std::cout << "update: " << curr_index << " " << curr_pos
-                            << " " << symbol << "\n";
-                }
-              }
-            } else {
-              if (verbose) {
-                std::cout << "not enough range yes jump\n";
-              }
-              curr_run = curr_run - 2;
-              curr_index = this->cols[i].p[curr_run + 1] - 1;
-              ms.row[i] =
-                  static_cast<unsigned int>(this->cols[i].sample_end[curr_run]);
-              // ms.row_supp[i] = lf(i, curr_index, query[i]) -
-              //                 this->cols[i].i_e_k[index_to_run(curr_index,
-              //                 i)];
-              ms_supp[i] = this->cols[i].p[curr_run];
-              int tmp_index = (int)i;
-              unsigned int len = 0;
-              auto rlf = curr_index;
-              while (tmp_index >= 0 &&
-                     query[tmp_index] ==
-                         get_next_char(this->cols[tmp_index].zero_first,
-                                       index_to_run(rlf, tmp_index))) {
-                if (tmp_index > 0) {
-                  rlf = reverse_lf(tmp_index, rlf, false);
-                }
-                tmp_index--;
-                len++;
-              }
-              ms.len[i] = len;
-              ms.len_supp[i] = this->cols[i].l_e_k[curr_run];
-              // update index, run, symbol (as explained before) if we are
-              // not at the end
-              if (i != query.size() - 1) {
-                curr_index = lf(i, curr_index, query[i]);
-                s_index = curr_index - this->cols[i].i_e_k[curr_run + 1];
-                // s_index = ms_supp[i];
-                curr_run = index_to_run(curr_index, i + 1);
-                symbol = get_next_char(this->cols[i + 1].zero_first, curr_run);
-                reset = false;
-
-                if (verbose) {
-                  std::cout << "update: " << curr_index << " " << curr_pos
-                            << " " << symbol << "\n";
-                }
-              }
-            }
+            //   s_index = curr_index - this->cols[i].i_k[curr_run];
+            //   curr_run = index_to_run(curr_index, i + 1);
+            //   symbol = get_next_char(this->cols[i + 1].zero_first, curr_run);
+            //   reset = false;
+            //   if (verbose) {
+            //     std::cout << "new: " << curr_index << " " << s_index << " "
+            //               << curr_run << " " << curr_pos << " " << symbol
+            //               << "\n";
+            //   }
+            // }
           } else {
             if (verbose) {
               std::cout << "match not end:\n";
             }
             ms.row[i] = curr_pos;
-            // ms.row_supp[i] = s_index;
+            ms.row_supp[i] = s_index;
             ms_supp[i] = curr_index;
 
             if (i == 0) {
@@ -1747,50 +1738,258 @@ public:
               ms.len_supp[i] = this->cols[i].l_e_k[curr_run];
             }
 
+            // ms.len[i] = std::min(ms.len[i], ms.len_supp[i]);
             unsigned int b = this->height - 1;
             unsigned int b_i = this->height - 1;
             unsigned int l_i = 0;
             unsigned int r_b = index_to_run(s_index, i);
+            if (r_b < this->cols[i].p.size() - 1 &&
+                s_index == this->cols[i].p[r_b + 1] - 1) {
+              r_b++;
+            }
 
             unsigned int r_e_b = index_to_run(s_index + this->k_smem - 1, i);
 
+            bool skip_h = false;
+            bool skip_t = false;
+            if (s_index > this->cols[i].p[r_b]) {
+              skip_h = true;
+            }
+            if ((r_e_b == this->cols[i].p.size() - 1 &&
+                 s_index + this->k_smem - 1 < this->height - 1) ||
+                (r_e_b < this->cols[i].p.size() - 1 &&
+                 s_index + this->k_smem - 1 < this->cols[i].p[r_e_b + 1] - 1)) {
+              skip_t = true;
+            }
+            std::cout << "from run " << r_b << " to " << r_e_b << "\n";
+            // if (r_b >= this->cols[i].p.size() - 1) {
+            //   b = this->cols[i].sample_end[this->cols[i].sample_end.size() -
+            //   1]; b_i = this->height - 1; l_i =
+            //   this->cols[i].l_e_k[this->cols[i].sample_end.size() - 1];
+            // } else {
+            //   // auto min_b = 0;
+            //   // auto len_min_b = this->width;
+            //   for (unsigned int r = r_b; r <= r_e_b; r++) {
+            //     std::cout << "at run " << r << ": "
+            //               << get_next_char(this->cols[i].zero_first, r)
+            //               << " vs " << query[i] << "\n";
+            //     if (get_next_char(this->cols[i].zero_first, r) == query[i]) {
+            //       auto tmp_i = 0;
+            //       if (r == this->cols[i].p.size() - 1) {
+            //         tmp_i = this->height - 1;
+            //       } else {
+            //         tmp_i = this->cols[i].p[r + 1] - 1;
+            //       }
+
+            //       b = this->cols[i].sample_end[index_to_run(tmp_i, i)];
+            //       if (index_to_run(tmp_i, i) + 1 < this->cols[i].p.size() -
+            //       1) {
+            //         b_i = this->cols[i].p[index_to_run(tmp_i, i) + 1] - 1;
+            //         l_i = this->cols[i].l_e_k[index_to_run(tmp_i, i)];
+            //       } else {
+            //         b_i = this->height - 1;
+            //         l_i = this->cols[i]
+            //                   .l_e_k[this->cols[i].sample_end.size() - 1];
+            //       }
+            //       // b_i = this->cols[i].p[index_to_run(tmp_i, i) + 1] - 1;
+            //       break;
+            //     }
+            //   }
+            // }
+            // bool end = true;
+            // if (r_b == this->cols[i].p.size() - 1 &&
+            //     get_next_char(this->cols[i].zero_first, r_b) == query[i]) {
+
+            //   // if (this->cols[i].l_e_k[r_b] > this->cols[i].l_k[r_b]) {
+            //   if (u_abs(curr_index, this->height - 1) <=
+            //       u_abs(curr_index, this->cols[i].p[r_b])) {
+            //     b = this->cols[i]
+            //             .sample_end[this->cols[i].sample_end.size() - 1];
+            //     b_i = this->height - 1;
+            //     l_i = this->cols[i].l_e_k[r_b];
+            //   } else {
+            //     b = this->cols[i]
+            //             .sample_beg[this->cols[i].sample_end.size() - 1];
+            //     b_i = this->cols[i].p[this->cols[i].sample_end.size() - 1];
+            //     l_i = this->cols[i].l_k[r_b];
+            //     end = false;
+            //   }
+            // } else {
+            // auto min_b = 0;
+            // auto len_min_b = this->width;
+            // for (unsigned int r = r_b; r <= r_e_b; r++) {
+            //   std::cout << r << "\n";
+            //   if (get_next_char(this->cols[i].zero_first, r) == query[i]) {
+            //     std::cout << this->cols[i].l_e_k[r] << " vs "
+            //               << this->cols[i].l_k[r] << "\n";
+            //     if (r == r_b) {
+            //       b = this->cols[i].sample_end[r];
+            //       if (r + 1 < this->cols[i].p.size() - 1) {
+            //         b_i = this->cols[i].p[r + 1] - 1;
+            //       } else {
+            //         b_i = this->height - 1;
+            //       }
+            //       l_i = this->cols[i].l_e_k[r];
+            //       if (verbose) {
+            //         std::cout << "end\n";
+            //       }
+            //     } else {
+            //       // if (this->cols[i].l_e_k[r] <= this->cols[i].l_k[r]) {
+            //       unsigned int e_d =
+            //           r == this->cols[i].p.size() - 1
+            //               ? u_abs(curr_index, this->height - 1)
+            //               : u_abs(curr_index, this->cols[i].p[r + 1] - 1);
+            //       if (e_d <= u_abs(curr_index, this->cols[i].p[r])) {
+            //         b = this->cols[i].sample_end[r];
+            //         if (r + 1 < this->cols[i].p.size() - 1) {
+            //           b_i = this->cols[i].p[r + 1] - 1;
+            //         } else {
+            //           b_i = this->height - 1;
+            //         }
+            //         l_i = this->cols[i].l_e_k[r];
+            //         if (verbose) {
+            //           std::cout << "end\n";
+            //         }
+            //       } else {
+            //         b = this->cols[i].sample_beg[r];
+            //         b_i = this->cols[i].p[r];
+            //         l_i = this->cols[i].l_k[r];
+            //         end = false;
+            //       }
+            //     }
+            //     // b_i = this->cols[i].p[index_to_run(tmp_i, i) + 1] - 1;
+            //     break;
+            //   }
+            // }
+            //
+            // if (r_b == this->cols[i].p.size() - 1 &&
+            //     get_next_char(this->cols[i].zero_first, r_b) == query[i]) {
+            //   if (s_index == this->cols[i].p[r_b]) {
+            //     b = this->cols[i].sample_end[r_b];
+            //     b_i = this->height - 1;
+            //     l_i = this->cols[i].l_e_k[r_b];
+            //   } else {
+            //     b = this->cols[i].sample_beg[r_b];
+            //     b_i = this->cols[i].p[r_b];
+            //     l_i = this->cols[i].l_k[r_b];
+            //     end = false;
+            //   }
+
+            // } else {
+            auto min_b = 0;
+            auto min_l = this->width;
+            auto tmp_b = 0;
+            auto t_l = this->width;
+            auto t_e = this->height - 1;
             bool end = false;
-            if (verbose) {
-              std::cout << "from run " << r_b << " to " << r_e_b << "\n";
-            }
-            // auto n_r = r_b;
-            if (get_next_char(this->cols[i].zero_first, r_b) == query[i]) {
-              r_b++;
-            }
-            if (verbose) {
-              std::cout << "update from run " << r_b << " to " << r_e_b << "\n";
-            }
-            if (r_b != 0 && ((this->cols[i].p[r_b] < this->cols[i].t[r_b]) ||
-                             r_b == this->cols[i].sample_beg.size() - 1)) {
-              if (verbose) {
-                std::cout << "go up\n";
+            for (unsigned int r = r_b; r <= r_e_b; r++) {
+              std::cout << r << "\n";
+              if (get_next_char(this->cols[i].zero_first, r) == query[i]) {
+                if (r == r_b && !skip_h) {
+                  t_l = lce(curr_index, this->cols[i].p[r], i);
+                  if (t_l < min_l) {
+                    min_l = t_l;
+                    min_b = this->cols[i].p[r];
+                    tmp_b = this->cols[i].sample_beg[r];
+                    l_i = this->cols[i].l_k[r];
+                    end = false;
+                  }
+                } else if (r == r_e_b && !skip_t) {
+                  t_e = this->height - 1;
+                  if (r < this->cols[i].p.size() - 1) {
+                    t_e = this->cols[i].p[r + 1] - 1;
+                  }
+                  t_l = lce(curr_index, t_e, i);
+                  if (t_l < min_l) {
+                    min_l = t_l;
+                    min_b = t_e;
+                    tmp_b = this->cols[i].sample_end[r];
+                    l_i = this->cols[i].l_e_k[r];
+                    end = true;
+                  }
+                } else {
+                  t_l = lce(curr_index, this->cols[i].p[r], i);
+                  if (t_l < min_l) {
+                    min_l = t_l;
+                    min_b = this->cols[i].p[r];
+                    tmp_b = this->cols[i].sample_beg[r];
+                    l_i = this->cols[i].l_k[r];
+                    end = false;
+                  }
+                  t_e = this->height - 1;
+                  if (r < this->cols[i].p.size() - 1) {
+                    t_e = this->cols[i].p[r + 1] - 1;
+                  }
+                  t_l = lce(curr_index, t_e, i);
+                  if (t_l < min_l) {
+                    min_l = t_l;
+                    min_b = t_e;
+                    tmp_b = this->cols[i].sample_end[r];
+                    l_i = this->cols[i].l_e_k[r];
+                    end = true;
+                  }
+                }
               }
-              b_i = this->cols[i].p[r_b] - 1;
-              b = this->cols[i].sample_end[r_b - 1];
-              l_i = this->cols[i].l_e_k[r_b - 1];
-              end = true;
-            } else {
-              if (verbose) {
-                std::cout << "go down\n";
-              }
-              b_i = this->cols[i].p[r_b + 1];
-              b = this->cols[i].sample_beg[r_b + 1];
-              l_i = this->cols[i].l_k[r_b + 1];
             }
+            b_i = min_b;
+            b = tmp_b;
+            //}
             if (verbose) {
-              std::cout << "b " << b << " b_i " << b_i << " l_i " << l_i
-                        << "\n";
+              std::cout << "leni " << ms.len[i] << "\n";
+              std::cout << "b " << b << " b_i " << b_i << "\n";
+              std::cout << i << " lce: " << lce(curr_index, b_i, i) << " "
+                        << curr_index << " " << b_i << "\n";
+              std::cout << " t_l: " << t_l << " min_l: " << min_l << "\n";
+              std::cout << "from " << ms.row[i] << " to " << b << "\n";
             }
-            ms.len[i] = std::min(ms.len[i], lce(curr_index, b_i, i));
+            // ms.len[i] = std::min(ms.len[i], lce(curr_index, b_i, i));
+            // auto r_b_i = index_to_run(b_i, i);
+            // ms.row[i] = b;
+            // curr_pos = b;
+            // if (end) {
+            //   ms.row_supp[i] = lf(i, b_i, query[i]) -
+            //                    this->cols[i].i_e_k[index_to_run(b_i, i)];
+            // } else {
+            //   ms.row_supp[i] = lf(i, b_i, query[i]) -
+            //                    this->cols[i].i_k[index_to_run(b_i, i)];
+            // }
+            // ms.len_supp[i] = l_i;
+            // ms_supp[i] = b_i;
+            // if (i != query.size() - 1) {
+            //   curr_index = lf(i, b_i, query[i]);
+            //   if (end) {
+            //     s_index = curr_index - this->cols[i].i_e_k[r_b_i];
+            //   } else {
+            //     s_index = curr_index - this->cols[i].i_k[r_b_i];
+            //   }
+
+            //   if (verbose) {
+            //     std::cout << "curr " << curr_index << " offset "
+            //               << this->cols[i].i_e_k[r_b_i] << "\n";
+
+            //     std::cout << "sindex " << s_index << "\n";
+            //     std::cout << "ri " << r_b_i << "\n";
+            //   }
+
+            //   curr_run = index_to_run(curr_index, i + 1);
+            //   symbol = get_next_char(this->cols[i + 1].zero_first,
+            //   curr_run); reset = false; if (verbose) {
+            //     std::cout << "new: " << curr_index << " " << s_index << " "
+            //               << curr_run << " " << curr_pos << " " << symbol
+            //               << "\n";
+            //   }
+            // }
+            ms.len[i] = std::min(ms.len[i], min_l);
             auto r_b_i = index_to_run(b_i, i);
             ms.row[i] = b;
             curr_pos = b;
-
+            if (end) {
+              ms.row_supp[i] = lf(i, b_i, query[i]) -
+                               this->cols[i].i_e_k[index_to_run(b_i, i)];
+            } else {
+              ms.row_supp[i] = lf(i, b_i, query[i]) -
+                               this->cols[i].i_k[index_to_run(b_i, i)];
+            }
             ms.len_supp[i] = l_i;
             ms_supp[i] = b_i;
             if (i != query.size() - 1) {
@@ -1823,8 +2022,9 @@ public:
       }
 
       if (verbose) {
-        std::cout << "ms row: " << ms.row[i] << ", ms supp: " << ms_supp[i]
-                  << ", ms len: " << ms.len[i]
+        std::cout << "ms row: " << ms.row[i]
+                  << ", ms row supp: " << ms.row_supp[i]
+                  << ", ms supp: " << ms_supp[i] << ", ms len: " << ms.len[i]
                   << ", ms len supp: " << ms.len_supp[i]
                   << ", curr index: " << curr_index << ", sindex : " << s_index
 
@@ -1842,8 +2042,8 @@ public:
   }
 
   /**
-   * @brief function to compute matching statistics with a given query
-   * using thresholds
+   * @brief function to compute matching statistics with a given query using
+   * thresholds
    * @param query haplotype query as std::string
    * @param extend_matches bool to check if extend matching statistics
    * matches with rows
@@ -1869,8 +2069,8 @@ public:
     std::vector<unsigned int> ms_supp(query.size());
 
     // algorithm begin from the last row of the first column
-    // so we obtain the prefix array value (from the samples), the run
-    // index and the relative symbol
+    // so we obtain the prefix array value (from the samples), the run index
+    // and the relative symbol
     auto curr_pos = static_cast<unsigned int>(
         this->cols[0].sample_end[this->cols[0].sample_end.size() - 1]);
     auto curr_index = curr_pos;
@@ -2375,8 +2575,7 @@ public:
   }
 
   /**
-   * function to get the total number of phi/phi_inv element() in the
-   * RLPBWT
+   * function to get the total number of phi/phi_inv element() in the RLPBWT
    * @return total number of run
    */
   std::pair<unsigned int, unsigned int> get_phi_number() {
@@ -2435,8 +2634,8 @@ public:
   }
 
   /**
-   * @brief function to obtain size in megabytes of the matching
-   * statistics supported RLPBWT
+   * @brief function to obtain size in megabytes of the matching statistics
+   * supported RLPBWT
    * @param verbose bool for extra prints
    * @return size in megabytes
    */
@@ -2507,8 +2706,7 @@ public:
   }
 
   /**
-   * @brief function to load the matching statistics supported RLPBWT
-   * object
+   * @brief function to load the matching statistics supported RLPBWT object
    * @param in std::istream object from which load the matching statistics
    * supported RLPBWT structure object
    */

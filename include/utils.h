@@ -52,6 +52,7 @@ public:
  */
 char get_next_char(bool zero_first, unsigned int index_run);
 int get_intervall(unsigned int start, unsigned int size);
+unsigned int u_abs(unsigned int u_a, unsigned int u_b);
 constexpr uint8_t bit_size(unsigned int value);
 
 template <typename T> double vectorsizeof(const typename std::vector<T> &vec) {

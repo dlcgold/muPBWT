@@ -26,7 +26,7 @@ public:
   /**
    * @brief support row vector of the matching statistics
    */
-  std::vector<unsigned int> row_supp;
+  // std::vector<unsigned int> row_supp;
 
   /**
    * @brief support length vector of the matching statistics
@@ -48,7 +48,7 @@ public:
    * @param len length vector of the matching statistics
    */
   ms_k(std::vector<unsigned int> row, std::vector<unsigned int> len,
-       std::vector<unsigned int> row_supp, std::vector<unsigned int> len_supp);
+       std::vector<unsigned int> len_supp);
 
   /**
    * @brief constructor from a number of matches
