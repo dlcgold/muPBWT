@@ -8,13 +8,10 @@ ms_k::ms_k() = default;
 ms_k::~ms_k() = default;
 
 ms_k::ms_k(std::vector<unsigned int> row, std::vector<unsigned int> len,
-           std::vector<unsigned int> row_supp,
            std::vector<unsigned int> len_supp)
-    : row(std::move(row)), len(std::move(len)), row_supp(std::move(row_supp)),
-      len_supp(std::move(len_supp)) {}
+    : row(std::move(row)), len(std::move(len)), len_supp(std::move(len_supp)) {}
 
-ms_k::ms_k(unsigned int size)
-    : row(size, 0), len(size, 0), row_supp(size, 0), len_supp(size, 0) {}
+ms_k::ms_k(unsigned int size) : row(size, 0), len(size, 0), len_supp(size, 0) {}
 
 std::ostream &operator<<(std::ostream &os, const ms_k &ms_k) {
   os << "\nind:\t\t";
@@ -29,10 +26,7 @@ std::ostream &operator<<(std::ostream &os, const ms_k &ms_k) {
   for (auto e : ms_k.len) {
     os << e << "\t";
   }
-  os << "\npos_supp:\t";
-  for (auto e : ms_k.row_supp) {
-    os << e << "\t";
-  }
+
   os << "\nlen_supp:\t";
   for (auto e : ms_k.len_supp) {
     os << e << "\t";

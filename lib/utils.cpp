@@ -27,3 +27,11 @@ constexpr uint8_t bit_size(unsigned int value) {
 unsigned int end_interval(unsigned int start, unsigned int length) {
   return start + length - 1;
 }
+
+unsigned int u_abs(unsigned int u_a, unsigned int u_b) {
+  if (u_a > u_b) {
+    return u_a - u_b;
+  } else {
+    return u_b - u_a;
+  }
+}
