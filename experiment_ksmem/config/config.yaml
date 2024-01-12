@@ -1,7 +1,7 @@
 folder :
   software : "software" 
-  res : "results"
+  res : "results_30"
   input : "input"
   output : "output"
 params :
-  queries : "50"
+  queries : "30"

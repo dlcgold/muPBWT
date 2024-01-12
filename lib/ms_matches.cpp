@@ -7,12 +7,13 @@
 ms_matches::ms_matches() = default;
 
 std::ostream &operator<<(std::ostream &os, const ms_matches &ms) {
-  os << "\nmatches (<start>, <ending>, <length>, [haplotypes]):\n";
+  // os << "\nmatches (<start>, <ending>, <length>, [haplotypes]):\n";
   bool haplo = ms.haplos.empty();
   for (unsigned int i = 0; i < ms.basic_matches.size(); i++) {
     os << std::get<2>(ms.basic_matches[i]) - std::get<1>(ms.basic_matches[i]) +
               1
-       << ", " << std::get<2>(ms.basic_matches[i]) << ", "
+       << ", "
+       //<< std::get<2>(ms.basic_matches[i]) << ", "
        << std::get<1>(ms.basic_matches[i]);
     if (!haplo) {
       os << ", [";

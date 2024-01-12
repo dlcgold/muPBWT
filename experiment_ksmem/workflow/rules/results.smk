@@ -7,13 +7,13 @@ rule extractVerbose:
         os.path.join(output_folder, "mupbwt", "{chr}_{k}", "make.time"),
         os.path.join(output_folder, "mupbwt", "{chr}_{k}", "exe.time"),
         #os.path.join(output_folder, "syllable", "{chr}", "make.time"),
-        time = os.path.join(output_folder, "{tool}", "{chr}", "{file}.time"),
-        nqueries = n_queries
+        time = os.path.join(output_folder, "mupbwt", "{chr}_{k}", "{file}.time"),
+        #nqueries = n_queries
     output:
-        os.path.join(output_folder, "{tool}", "{chr}", "{file}.time.csv")
+        os.path.join(output_folder, "mupbwt", "{chr}_{k}", "{file}.time.csv")
     shell:
         """
-        python workflow/scripts/time_verbose_extractor.py {wildcards.tool} 4908 0 {wildcards.chr} {wildcard.k} < {input.time} > {output}
+        python workflow/scripts/time_verbose_extractor.py {wildcards.k} 4908 0 {wildcards.chr} {n_queries}  < {input.time} > {output}
         """
 
 rule mergeExeTime:
