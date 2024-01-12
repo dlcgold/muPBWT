@@ -1180,7 +1180,9 @@ public:
         if ((i != f_len.size() - 1 && f_len[i] > 0 &&
              f_len[i] >= f_len[i + 1]) ||
             (i == f_len.size() - 1 && f_len[i] != 0)) {
+            if (f_len[i] > this->width/10000){
           ms_matches.basic_matches.emplace_back(ms.row[i], f_len[i], i);
+          }
         }
       }
       // save every match from matching statistics (when we have a "peak" in
@@ -1237,7 +1239,18 @@ public:
    * @param symbol run symbol
    */
   unsigned int best_run(unsigned int col_index, char symbol) {
-    auto best_run_index = this->height;
+    auto best_run_index = 0;
+    if (this->cols[col_index].p.size() == 1) {
+      return 0;
+    }
+    if (this->cols[col_index].p.size() == 2) {
+      if ((symbol == '0' && this->cols[col_index].zero_first) ||
+          (symbol == '1' && !this->cols[col_index].zero_first)) {
+        return 0;
+      } else {
+        return 1;
+      }
+    }
     auto best_run_len = 0;
     if ((symbol == '0' && this->cols[col_index].zero_first) ||
         (symbol == '1' && !this->cols[col_index].zero_first)) {
@@ -1418,25 +1431,45 @@ public:
         // update index, run, symbol (as explained before) if we are
         // not at the end
         if (i != query.size() - 1) {
-
+          // std::cout << "start_run"<< std::endl;
           curr_run = best_run(i + 1, query[i + 1]);
+          // std::cout << "end_run"<< std::endl;
+          // std::cout << std::endl;
+          //   std::cout << "start_pos " << i << ""<< std::endl;
+          //   std::cout << curr_run << " " << this->cols[i +
+          //   1].sample_end.size() << std::endl;
           curr_pos =
               static_cast<unsigned int>(this->cols[i + 1].sample_end[curr_run]);
+          //      std::cout << "end_pos"<< std::endl;
+          //       std::cout << std::endl;
+          //       std::cout << "start_index " << i << "  " << this->width <<
+          //       ""<< std::endl;
+
           curr_index = curr_run != this->cols[i + 1].p.size() - 1
                            ? this->cols[i + 1].p[curr_run + 1] - 1
                            : this->height - 1;
-
+          // std::cout << "end_index"<< std::endl;
+          // std::cout << std::endl;
+          // std::cout << "start_verbose"<< std::endl;
           if (verbose) {
+
             std::cout << lf(i + 1, curr_index, query[i + 1]) << " - "
                       << this->cols[i + 1].i_e_k[curr_run] << " = "
                       << lf(i + 1, curr_index, query[i + 1]) -
                              this->cols[i + 1].i_e_k[curr_run]
                       << "\n";
           }
+          //     std::cout << "end_verbose"<< std::endl;
+          //     std::cout << std::endl;
+          //     std::cout << "start_sindex"<< std::endl;
           s_index = lf(i + 1, curr_index, query[i + 1]) -
                     this->cols[i + 1].i_e_k[curr_run];
-
+          // std::cout << "end_sindex"<< std::endl;
+          //     std::cout << std::endl;
+          // std::cout << "start_symbol"<< std::endl;
           symbol = get_next_char(this->cols[i + 1].zero_first, curr_run);
+          //  std::cout << "end_symbol"<< std::endl;
+          // std::cout << std::endl;
           reset = true;
           if (verbose) {
             std::cout << "update: " << curr_index << " " << curr_pos << " "
@@ -2096,34 +2129,41 @@ public:
             matches_vec[i] =
                 this->match_thr(queries[i], extend_matches, verbose);
           }
-          if (extend_matches) {
-            for (unsigned int i = 0; i < queries.size(); i++) {
-              if (!matches_vec[i].haplos.empty()) {
+          if (this->k_smem < 1) {
+            if (extend_matches) {
+              for (unsigned int i = 0; i < queries.size(); i++) {
+                if (!matches_vec[i].haplos.empty()) {
+                  for (unsigned int j = 0;
+                       j < matches_vec[i].basic_matches.size(); j++) {
+                    auto len = std::get<1>(matches_vec[i].basic_matches[j]);
+                    auto end = std::get<2>(matches_vec[i].basic_matches[j]);
+                    for (unsigned int k = 0;
+                         k < matches_vec[i].haplos[j].size(); k++) {
+                      out_match << "MATCH\t" << i << "\t"
+                                << matches_vec[i].haplos[j][k] << "\t"
+                                << end - (len - 1) << "\t" << end << "\t" << len
+                                << "\n";
+                    }
+                  }
+                }
+              }
+            } else {
+              for (unsigned int i = 0; i < queries.size(); i++) {
                 for (unsigned int j = 0;
                      j < matches_vec[i].basic_matches.size(); j++) {
                   auto len = std::get<1>(matches_vec[i].basic_matches[j]);
+                  auto pos = std::get<0>(matches_vec[i].basic_matches[j]);
                   auto end = std::get<2>(matches_vec[i].basic_matches[j]);
-                  for (unsigned int k = 0; k < matches_vec[i].haplos[j].size();
-                       k++) {
-                    out_match << "MATCH\t" << i << "\t"
-                              << matches_vec[i].haplos[j][k] << "\t"
-                              << end - (len - 1) << "\t" << end << "\t" << len
-                              << "\n";
-                  }
+                  out_match << "MATCH\t" << i << "\t" << pos << "\t"
+                            << end - (len - 1) << "\t" << end << "\t" << len
+                            << "\n";
                 }
               }
             }
           } else {
+            out_match << "\nmatches (<start>, <length>, [haplotypes]):\n";
             for (unsigned int i = 0; i < queries.size(); i++) {
-              for (unsigned int j = 0; j < matches_vec[i].basic_matches.size();
-                   j++) {
-                auto len = std::get<1>(matches_vec[i].basic_matches[j]);
-                auto pos = std::get<0>(matches_vec[i].basic_matches[j]);
-                auto end = std::get<2>(matches_vec[i].basic_matches[j]);
-                out_match << "MATCH\t" << i << "\t" << pos << "\t"
-                          << end - (len - 1) << "\t" << end << "\t" << len
-                          << "\n";
-              }
+              out_match << i << "\n" << matches_vec[i];
             }
           }
           out_match.close();
@@ -2198,34 +2238,41 @@ public:
           matches_vec[i] = this->match_thr(queries[i], extend_matches, verbose);
         }
 
-        if (extend_matches) {
-          for (unsigned int i = 0; i < queries.size(); i++) {
-            if (!matches_vec[i].haplos.empty()) {
+        if (this->k_smem < 1) {
+          if (extend_matches) {
+            for (unsigned int i = 0; i < queries.size(); i++) {
+              if (!matches_vec[i].haplos.empty()) {
+                for (unsigned int j = 0;
+                     j < matches_vec[i].basic_matches.size(); j++) {
+                  auto len = std::get<1>(matches_vec[i].basic_matches[j]);
+                  auto end = std::get<2>(matches_vec[i].basic_matches[j]);
+                  for (unsigned int k = 0; k < matches_vec[i].haplos[j].size();
+                       k++) {
+                    out_match << "MATCH\t" << i << "\t"
+                              << matches_vec[i].haplos[j][k] << "\t"
+                              << end - (len - 1) << "\t" << end << "\t" << len
+                              << "\n";
+                  }
+                }
+              }
+            }
+          } else {
+            for (unsigned int i = 0; i < queries.size(); i++) {
               for (unsigned int j = 0; j < matches_vec[i].basic_matches.size();
                    j++) {
                 auto len = std::get<1>(matches_vec[i].basic_matches[j]);
+                auto pos = std::get<0>(matches_vec[i].basic_matches[j]);
                 auto end = std::get<2>(matches_vec[i].basic_matches[j]);
-                for (unsigned int k = 0; k < matches_vec[i].haplos[j].size();
-                     k++) {
-                  out_match << "MATCH\t" << i << "\t"
-                            << matches_vec[i].haplos[j][k] << "\t"
-                            << end - (len - 1) << "\t" << end << "\t" << len
-                            << "\n";
-                }
+                out_match << "MATCH\t" << i << "\t" << pos << "\t"
+                          << end - (len - 1) << "\t" << end << "\t" << len
+                          << "\n";
               }
             }
           }
         } else {
+          out_match << "\nmatches (<start>, <length>, [haplotypes]):\n";
           for (unsigned int i = 0; i < queries.size(); i++) {
-            for (unsigned int j = 0; j < matches_vec[i].basic_matches.size();
-                 j++) {
-              auto len = std::get<1>(matches_vec[i].basic_matches[j]);
-              auto pos = std::get<0>(matches_vec[i].basic_matches[j]);
-              auto end = std::get<2>(matches_vec[i].basic_matches[j]);
-              out_match << "MATCH\t" << i << "\t" << pos << "\t"
-                        << end - (len - 1) << "\t" << end << "\t" << len
-                        << "\n";
-            }
+            out_match << i << "\n" << matches_vec[i];
           }
         }
         out_match.close();
@@ -2405,6 +2452,7 @@ public:
     unsigned long long size_run = 0;
     unsigned long long size_thr = 0;
     unsigned long long size_uv = 0;
+    double size_k = 0;
     auto lp_size = sdsl::size_in_bytes(this->last_pref);
     unsigned long long size_samples = lp_size;
     size += lp_size;
@@ -2413,6 +2461,10 @@ public:
       size_run += sdsl::size_in_bytes(this->cols[i].p);
       size_thr += sdsl::size_in_bytes(this->cols[i].t);
       size_uv += sdsl::size_in_bytes(this->cols[i].uv);
+      size_k += sdsl::size_in_bytes(this->cols[i].i_k) +
+                sdsl::size_in_bytes(this->cols[i].l_k) +
+                sdsl::size_in_bytes(this->cols[i].i_e_k) +
+                sdsl::size_in_bytes(this->cols[i].l_e_k);
       size_samples += sdsl::size_in_bytes(this->cols[i].sample_beg) +
                       sdsl::size_in_bytes(this->cols[i].sample_end);
     }
@@ -2421,6 +2473,7 @@ public:
       std::cout << "thr: " << size_thr << " bytes\n";
 
       std::cout << "uv: " << size_uv << " bytes\n";
+      std::cout << "k: " << size_k << " bytes\n";
       std::cout << "samples: " << size_samples << " bytes\n";
       std::cout << "rlpbwt (with also c values and other support variables): "
                 << size << " bytes\n";
@@ -2447,6 +2500,7 @@ public:
     double size_run = 0;
     double size_thr = 0;
     double size_uv = 0;
+    double size_k = 0;
     auto lp_size = sdsl::size_in_mega_bytes(this->last_pref);
     double size_samples = lp_size;
     size += lp_size;
@@ -2455,6 +2509,10 @@ public:
       size_run += sdsl::size_in_mega_bytes(this->cols[i].p);
       size_thr += sdsl::size_in_mega_bytes(this->cols[i].t);
       size_uv += sdsl::size_in_mega_bytes(this->cols[i].uv);
+      size_k += sdsl::size_in_mega_bytes(this->cols[i].i_k) +
+                sdsl::size_in_mega_bytes(this->cols[i].l_k) +
+                sdsl::size_in_mega_bytes(this->cols[i].i_e_k) +
+                sdsl::size_in_mega_bytes(this->cols[i].l_e_k);
       size_samples += sdsl::size_in_mega_bytes(this->cols[i].sample_beg) +
                       sdsl::size_in_mega_bytes(this->cols[i].sample_end) +
                       sdsl::size_in_mega_bytes(this->cols[i].sample_beg_lcp);
@@ -2465,6 +2523,7 @@ public:
       std::cout << "run: " << size_run << " megabytes\n";
       std::cout << "thr: " << size_thr << " megabytes\n";
       std::cout << "uv: " << size_uv << " megabytes\n";
+      std::cout << "k: " << size_k << " megabytes\n";
       std::cout << "samples: " << size_samples << " megabytes\n";
       std::cout << "rlpbwt (mapping): " << size << " megabytes\n";
     }
@@ -2532,3 +2591,4 @@ public:
 };
 
 #endif // RLPBWT_RLPBWT_NAIVE_MS_H
+
