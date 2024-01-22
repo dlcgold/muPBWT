@@ -538,17 +538,26 @@ private:
         std::cout << "u: " << u << "\n";
       }
       // iteration over the u values to find the correct one
+      int s = 0;
+      int e = this->cols[col_index].p.size() - 2;
+      int m = 0;
       unsigned int prevu = 0;
       unsigned int nextu = 0;
-      for (unsigned int i = 0; i < this->cols[col_index].p.size() - 1; i++) {
-        prevu = uvtrick(col_index, i).first;
-        nextu = uvtrick(col_index, i + 1).first;
+      while (s <= e) {
+        m = (s + e) / 2;
+        prevu = uvtrick(col_index, m).first;
+        nextu = uvtrick(col_index, m + 1).first;
         if (prevu <= u && u < nextu) {
-          pos = i;
+          pos = m;
           found = true;
           break;
+        } else if (prevu <= u) {
+          s = m + 1;
+        } else {
+          e = m - 1;
         }
       }
+   
       // if not found we are at the last run
       if (!found) {
         pos = this->cols[col_index].p.size() - 1;
@@ -566,22 +575,35 @@ private:
       }
       return this->cols[col_index].p[pos] + offset;
     } else {
-      unsigned int prevv = 0;
-      unsigned int nextv = 0;
+      int s = 0;
+      int e = this->cols[col_index].p.size() - 2;
+      int m = 0;
       v = index - c;
       if (verbose) {
         std::cout << "v: " << v << "\n";
       }
-      // iteration over the v values to find the correct one
-      for (unsigned int i = 0; i < this->cols[col_index].p.size() - 1; ++i) {
-        prevv = uvtrick(col_index, i).second;
-        nextv = uvtrick(col_index, i + 1).second;
+      unsigned int prevv = 0;
+      unsigned int nextv = 0;
+      while (s <= e) {
+        m = (s + e) / 2;
+        prevv = uvtrick(col_index, m).second;
+        nextv = uvtrick(col_index, m + 1).second;
         if (prevv <= v && v < nextv) {
-          pos = i;
+          pos = m;
           found = true;
           break;
+        } else if (prevv <= v) {
+          s = m + 1;
+        } else {
+          e = m - 1;
         }
       }
+      if (verbose) {
+        std::cout << "s " << s << " e " << e << " m " << m << " pos " << pos
+                  << "\n";
+      }
+
+  
       // if not found we are at the last run
       if (!found) {
         pos = this->cols[col_index].p.size() - 1;
@@ -600,7 +622,6 @@ private:
     }
     return 0;
   }
-
   /**
    * @brief function to map an index to the correct run in a column
    * @param index index to map
@@ -799,7 +820,7 @@ private:
     return haplos;
   }
 
-  unsigned int lce(unsigned int q, unsigned int s, unsigned int c) {
+  unsigned int lce(unsigned int q, unsigned int s, unsigned int c, unsigned int l) {
     int col = static_cast<int>(c);
     unsigned int lce = 0;
     while (
@@ -812,6 +833,9 @@ private:
       }
       col--;
       lce++;
+	if (lce==l){
+	return l;
+}
     }
     return lce;
   }
@@ -1180,9 +1204,8 @@ public:
         if ((i != f_len.size() - 1 && f_len[i] > 0 &&
              f_len[i] >= f_len[i + 1]) ||
             (i == f_len.size() - 1 && f_len[i] != 0)) {
-            if (f_len[i] > this->width/10000){
           ms_matches.basic_matches.emplace_back(ms.row[i], f_len[i], i);
-          }
+          
         }
       }
       // save every match from matching statistics (when we have a "peak" in
@@ -1688,6 +1711,7 @@ public:
                   static_cast<unsigned int>(this->cols[i].sample_end[curr_run]);
 
               ms_supp[i] = this->cols[i].p[curr_run];
+
               int tmp_index = (int)i;
               unsigned int len = 0;
               auto rlf = curr_index;
@@ -1701,16 +1725,20 @@ public:
                 tmp_index--;
                 len++;
               }
+
               ms.len[i] = len;
               ms.len_supp[i] = this->cols[i].l_e_k[curr_run];
+
               // update index, run, symbol (as explained before) if we are
               // not at the end
               if (i != query.size() - 1) {
                 curr_index = lf(i, curr_index, query[i]);
-                s_index = curr_index - this->cols[i].i_e_k[curr_run + 1];
+                s_index = curr_index - this->cols[i].i_e_k[curr_run];
+
                 // s_index = ms_supp[i];
                 curr_run = index_to_run(curr_index, i + 1);
                 symbol = get_next_char(this->cols[i + 1].zero_first, curr_run);
+
                 reset = false;
                 if (verbose) {
                   std::cout << "new: " << curr_index << " " << curr_run << " "
@@ -1819,7 +1847,7 @@ public:
               std::cout << "b " << b << " b_i " << b_i << " l_i " << l_i
                         << "\n";
             }
-            ms.len[i] = std::min(ms.len[i], lce(curr_index, b_i, i));
+            ms.len[i] = std::min(ms.len[i], lce(curr_index, b_i, i,ms.len[i]));
             auto r_b_i = index_to_run(b_i, i);
             ms.row[i] = b;
             curr_pos = b;
@@ -1884,7 +1912,7 @@ public:
    * @param verbose bool for extra prints
    * @return matching statistics matches
    */
-  std::pair<ms, std::vector<unsigned int>>
+   std::pair<ms, std::vector<unsigned int>>
   compute_ms(const std::string &query, bool extend_matches = false,
              bool verbose = false) {
 
@@ -2070,7 +2098,7 @@ public:
     }
 
     return std::make_pair(ms, ms_supp);
-  }
+  } 
 
   /**
    * @brief function to compute queries with thresholds from a transposed

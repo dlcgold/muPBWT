@@ -1,0 +1,19 @@
+digraph {
+	graph [fontname=Arial, nodesep=0.125, ranksep=0.25];
+	node [fontcolor=white, fontname=Arial, height=0, shape=box, style=filled, width=0];
+	edge [fontname=Arial];
+	1 [color="#ff0200", fontcolor="#ffffff", fontsize="10.00", label="rlpbwt_int::match_thr(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, bool, bool)\n99.85%\n(0.76%)\n30×"];
+	1 -> 1 [arrowsize="1.00", color="#ff0200", fontcolor="#ff0200", fontsize="10.00", label="30×", labeldistance="3.99", penwidth="3.99"];
+	1 -> 2 [arrowsize="0.92", color="#e98b03", fontcolor="#e98b03", fontsize="10.00", label="85.23%\n3977311866×", labeldistance="3.41", penwidth="3.41"];
+	1 -> 4 [arrowsize="0.35", color="#0d4482", fontcolor="#0d4482", fontsize="10.00", label="11.77%\n4072342180×", labeldistance="0.50", penwidth="0.50"];
+	1 -> 5 [arrowsize="0.35", color="#0d1475", fontcolor="#0d1475", fontsize="10.00", label="1.67%\n63233705×", labeldistance="0.50", penwidth="0.50"];
+	2 [color="#eb7f03", fontcolor="#ffffff", fontsize="10.00", label="rlpbwt_int::uvtrick(unsigned int, unsigned int) const\n86.58%\n(24.24%)\n11076501397×"];
+	2 -> 2 [arrowsize="0.93", color="#eb7f03", fontcolor="#eb7f03", fontsize="10.00", label="7035876356×", labeldistance="3.46", penwidth="3.46"];
+	2 -> 3 [arrowsize="0.79", color="#66c708", fontcolor="#66c708", fontsize="10.00", label="62.34%\n40101869874×", labeldistance="2.49", penwidth="2.49"];
+	3 [color="#9fd107", fontcolor="#ffffff", fontsize="10.00", label="sdsl::int_vector<(unsigned char)0>::operator[](unsigned long const&) const\n68.87%\n(68.87%)\n44303441629×"];
+	4 [color="#0d4582", fontcolor="#ffffff", fontsize="10.00", label="rlpbwt_int::index_to_run(unsigned int, unsigned int) const\n11.95%\n(5.52%)\n4135695090×"];
+	4 -> 3 [arrowsize="0.35", color="#0d297b", fontcolor="#0d297b", fontsize="10.00", label="6.43%\n4135695090×", labeldistance="0.50", penwidth="0.50"];
+	5 [color="#0d1475", fontcolor="#ffffff", fontsize="10.00", label="frame_dummy\n1.70%\n(0.06%)\n64368673×"];
+	5 -> 2 [arrowsize="0.35", color="#0d1274", fontcolor="#0d1274", fontsize="10.00", label="1.36%\n63313175×", labeldistance="0.50", penwidth="0.50"];
+	5 -> 4 [arrowsize="0.35", color="#0d0d73", fontcolor="#0d0d73", fontsize="10.00", label="0.18%\n63313175×", labeldistance="0.50", penwidth="0.50"];
+}
