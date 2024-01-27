@@ -462,6 +462,82 @@ private:
     sdsl::util::bit_compress(this->cols.back().i_e_k);
     sdsl::util::bit_compress(this->cols.back().l_e_k);
   }
+
+  std::pair<int, int> build_k_vals(unsigned int lf_pos, unsigned int row_index,
+                                   unsigned int col_index) {
+    col_index++;
+    int a = 0;
+    if (lf_pos + 2 >= this->k_smem) {
+      a = lf_pos - this->k_smem + 2;
+    }
+    int e = this->height - 1;
+    if (lf_pos - 1 + this->k_smem < this->height) {
+      e = lf_pos + this->k_smem - 1;
+    }
+    unsigned int div_index = lf_pos - a;
+    std::vector<unsigned int> div(e - a + 1);
+    // std::cout << "a " << a << " e " << e << " lf_pos " << lf_pos
+    //           << " div_index " << div_index << " row_index " << row_index
+    //           << " col_index " << col_index << "\n ";
+    div[div_index] = this->phi->plcp(row_index, col_index);
+    int tmp_index = div_index;
+    unsigned int tmp_row = row_index;
+    // std::cout << "up\n";
+    while (tmp_index > 0) {
+      // std::cout << "tmp_index " << tmp_index << " tmp_row " << tmp_row << "\n
+      // ";
+      auto phi_res = this->phi->phi(tmp_row, col_index);
+      if (!phi_res.has_value()) {
+        // std::cout << "break\n";
+        break;
+      }
+      tmp_row = phi_res.value();
+      tmp_index--;
+      // std::cout << "tmp_index " << tmp_index << " tmp_row " << tmp_row << "\n
+      // ";
+      div[tmp_index] = this->phi->plcp(tmp_row, col_index);
+    }
+    tmp_index = div_index;
+    tmp_row = row_index;
+    // std::cout << "down\n";
+    while (tmp_index <= div.size() - 1) {
+      auto phi_res = this->phi->phi_inv(tmp_row, col_index);
+      if (!phi_res.has_value()) {
+        break;
+      }
+      tmp_row = phi_res.value();
+      tmp_index++;
+      // std::cout << "tmp_index " << tmp_index << "\n";
+      div[tmp_index] = this->phi->plcp(tmp_row, col_index);
+    }
+
+    // for (unsigned int i = 0; i < div.size(); i++) {
+    //   std::cout << div[i] << " ";
+    // }
+    // std::cout << "\n";
+    int l_v = 0;
+    int i_v = 0;
+    auto sub_m = maxSubvector(div, this->k_smem - 1);
+    if (e - a + 1 < this->k_smem - 1) {
+      sub_m.second = -1;
+    }
+    if (sub_m.second != -1) {
+      sub_m.second = (sub_m.second + a) - (k_smem - 2);
+      if (sub_m.second > 0) {
+        sub_m.second--;
+      }
+      i_v = static_cast<unsigned int>(sub_m.second) >= lf_pos
+                ? 0
+                : lf_pos - sub_m.second;
+
+      l_v = sub_m.first;
+    } else {
+      i_v = 0;
+      l_v = 0;
+    }
+
+    return {i_v, l_v};
+  }
   /**
    * @brief function to compute the lf mapping, w(i, s) function in Durbin
    * @param col_index index of the column
@@ -557,7 +633,7 @@ private:
           e = m - 1;
         }
       }
-   
+
       // if not found we are at the last run
       if (!found) {
         pos = this->cols[col_index].p.size() - 1;
@@ -603,7 +679,6 @@ private:
                   << "\n";
       }
 
-  
       // if not found we are at the last run
       if (!found) {
         pos = this->cols[col_index].p.size() - 1;
@@ -696,6 +771,7 @@ private:
 
     // iterate over every basic match
     for (unsigned int i = 0; i < ms_matches.basic_matches.size(); i++) {
+
       // initialize the vector that will contain row indices
       std::vector<unsigned int> haplos;
 
@@ -704,8 +780,9 @@ private:
       haplos.emplace_back(start_row);
       unsigned int curr_len = std::get<1>(ms_matches.basic_matches[i]);
       unsigned int curr_col = std::get<2>(ms_matches.basic_matches[i]);
-      // initialize boolean and temporary variables for go up/down in
-      // search of matching rows
+      // std::cout << "i " << i << " row " << start_row << "\n";
+      //  initialize boolean and temporary variables for go up/down in
+      //  search of matching rows
       bool check_down = true;
       unsigned int down_row = 0;
       bool check_up = true;
@@ -820,7 +897,8 @@ private:
     return haplos;
   }
 
-  unsigned int lce(unsigned int q, unsigned int s, unsigned int c, unsigned int l) {
+  unsigned int lce(unsigned int q, unsigned int s, unsigned int c,
+                   unsigned int l) {
     int col = static_cast<int>(c);
     unsigned int lce = 0;
     while (
@@ -833,9 +911,9 @@ private:
       }
       col--;
       lce++;
-	if (lce==l){
-	return l;
-}
+      if (lce == l) {
+        return l;
+      }
     }
     return lce;
   }
@@ -1078,7 +1156,11 @@ public:
           this->cols.back().i_e_k.resize(0);
           this->cols.back().l_e_k.resize(0);
         } else if (k_smem > 1 && count >= 1) {
-          rlpbwt_int::update_k_intervals(div);
+          this->cols.back().i_k.resize(0);
+          this->cols.back().l_k.resize(0);
+          this->cols.back().i_e_k.resize(0);
+          this->cols.back().l_e_k.resize(0);
+          // rlpbwt_int::update_k_intervals(div);
         }
         last_col = new_column;
         count++;
@@ -1169,8 +1251,9 @@ public:
         if (verbose) {
           std::cout << "\nextending\n";
         }
-        extend_haplos(ms_matches, ms_supp);
+        // extend_haplos(ms_matches, ms_supp);
       }
+
       if (verbose) {
         std::cout << ms << "\n";
         std::cout << ms_matches << "\n";
@@ -1205,7 +1288,6 @@ public:
              f_len[i] >= f_len[i + 1]) ||
             (i == f_len.size() - 1 && f_len[i] != 0)) {
           ms_matches.basic_matches.emplace_back(ms.row[i], f_len[i], i);
-          
         }
       }
       // save every match from matching statistics (when we have a "peak" in
@@ -1226,32 +1308,32 @@ public:
         if (verbose) {
           std::cout << "\nextending\n";
         }
-        extend_haplos(ms_matches, ms_supp);
+        // extend_haplos(ms_matches, ms_supp);
       }
-      auto i = 0;
-      for (auto m : ms_matches.haplos) {
-        if (m.size() < this->k_smem) {
-          std::cerr << "ERROR: " << m.size() << " < " << this->k_smem << "\n";
-          // std::cerr << ms_matches << "\n";
-          for (auto e : m) {
-            std::cerr << e << " ";
-          }
-          std::cerr << std::endl;
-          std::cerr << std::get<0>(ms_matches.basic_matches[i]) << " "
-                    << std::get<2>(ms_matches.basic_matches[i]) << " "
-                    << std::get<1>(ms_matches.basic_matches[i]) << "\n";
-          std::cerr << std::endl;
-          // break;
-          exit(1);
-        }
-        assert(m.size() >= this->k_smem);
-        i++;
-      }
+      // auto i = 0;
+      // for (auto m : ms_matches.haplos) {
+      //   if (m.size() < this->k_smem) {
+      //     std::cerr << "ERROR: " << m.size() << " < " << this->k_smem <<
+      //     "\n";
+      //     // std::cerr << ms_matches << "\n";
+      //     for (auto e : m) {
+      //       std::cerr << e << " ";
+      //     }
+      //     std::cerr << std::endl;
+      //     std::cerr << std::get<0>(ms_matches.basic_matches[i]) << " "
+      //               << std::get<2>(ms_matches.basic_matches[i]) << " "
+      //               << std::get<1>(ms_matches.basic_matches[i]) << "\n";
+      //     std::cerr << std::endl;
+      //     // break;
+      //     exit(1);
+      //   }
+      //   assert(m.size() >= this->k_smem);
+      //   i++;
+      // }
       if (verbose) {
         // std::cout << ms << "\n";
-        std::cout << ms_matches << "\n";
+        // std::cout << ms_matches << "\n";
       }
-
       return ms_matches;
     }
   }
@@ -1364,7 +1446,9 @@ public:
     //            std::cout << "curr_pos " << curr_pos << "\n";
 
     char symbol = get_next_char(this->cols[0].zero_first, curr_run);
-    unsigned int s_index = this->cols[0].i_e_k[curr_run];
+
+    auto k_vals = build_k_vals(lf(0, curr_index, query[0]), curr_pos, 0);
+    unsigned int s_index = k_vals.first;
     bool reset = true;
     // auto s_index = lf(0, curr_index, query[0]) -
     // this->cols[0].i_e_k[curr_run];
@@ -1474,19 +1558,20 @@ public:
           // std::cout << "end_index"<< std::endl;
           // std::cout << std::endl;
           // std::cout << "start_verbose"<< std::endl;
-          if (verbose) {
 
-            std::cout << lf(i + 1, curr_index, query[i + 1]) << " - "
-                      << this->cols[i + 1].i_e_k[curr_run] << " = "
-                      << lf(i + 1, curr_index, query[i + 1]) -
-                             this->cols[i + 1].i_e_k[curr_run]
-                      << "\n";
-          }
           //     std::cout << "end_verbose"<< std::endl;
           //     std::cout << std::endl;
           //     std::cout << "start_sindex"<< std::endl;
-          s_index = lf(i + 1, curr_index, query[i + 1]) -
-                    this->cols[i + 1].i_e_k[curr_run];
+          k_vals = build_k_vals(lf(i + 1, curr_index, query[i + 1]), curr_pos,
+                                i + 1);
+          if (verbose) {
+
+            std::cout << lf(i + 1, curr_index, query[i + 1]) << " - "
+                      << k_vals.first << " = "
+                      << lf(i + 1, curr_index, query[i + 1]) - k_vals.first
+                      << "\n";
+          }
+          s_index = lf(i + 1, curr_index, query[i + 1]) - k_vals.first;
           // std::cout << "end_sindex"<< std::endl;
           //     std::cout << std::endl;
           // std::cout << "start_symbol"<< std::endl;
@@ -1531,9 +1616,10 @@ public:
                                : this->height - 1;
 
               symbol = get_next_char(this->cols[i + 1].zero_first, curr_run);
+              k_vals = build_k_vals(lf(i + 1, curr_index, query[i + 1]),
+                                    curr_pos, i + 1);
 
-              s_index = lf(i + 1, curr_index, query[i + 1]) -
-                        this->cols[i + 1].i_e_k[curr_run];
+              s_index = lf(i + 1, curr_index, query[i + 1]) - k_vals.first;
               reset = true;
               if (verbose) {
                 std::cout << "update: " << curr_index << " " << curr_pos << " "
@@ -1559,8 +1645,9 @@ public:
             ms.row[i] = curr_pos;
             // ms.row_supp[i] = lf(i, s_index, query[i]);
             if (verbose) {
-              std::cout << "curr_index " << curr_index << "i_k "
-                        << this->cols[i].i_e_k[index_to_run(curr_index, i)]
+              std::cout << "curr_index " << curr_index
+                        << "i_k "
+                        // << this->cols[i].i_e_k[index_to_run(curr_index, i)]
                         << "\n";
             }
             // ms.row_supp[i] =
@@ -1583,16 +1670,19 @@ public:
             }
 
             ms.len[i] = len;
-            ms.len_supp[i] = this->cols[i].l_e_k[curr_run - 1];
+            k_vals = build_k_vals(lf(i, curr_index, query[i]), curr_pos, i);
+
+            ms.len_supp[i] = k_vals.second;
             // ms.len[i] = std::min(len, ms.len_supp[i]);
             //  update index, run, symbol if we are not at the end
             if (i != query.size() - 1) {
               curr_index = lf(i, curr_index, query[i]);
               if (verbose) {
                 std::cout << "update sindex " << curr_index << " "
-                          << this->cols[i].i_e_k[curr_run - 1] << "\n";
+                          << k_vals.first << "\n";
               }
-              s_index = curr_index - this->cols[i].i_e_k[curr_run - 1];
+
+              s_index = curr_index - k_vals.first;
               // s_index = ms_supp[i];
               curr_run = index_to_run(curr_index, i + 1);
               symbol = get_next_char(this->cols[i + 1].zero_first, curr_run);
@@ -1631,7 +1721,9 @@ public:
               len++;
             }
             ms.len[i] = len;
-            ms.len_supp[i] = this->cols[i].l_k[curr_run + 1];
+            k_vals = build_k_vals(lf(i, curr_index, query[i]), curr_pos, i);
+
+            ms.len_supp[i] = k_vals.second;
             // ms.len[i] = std::min(len, ms.len_supp[i]);
             if (verbose) {
               std::cout << "update: " << curr_index << " " << curr_pos << " "
@@ -1640,7 +1732,7 @@ public:
             // update index, run, symbol if we are not at the end
             if (i != query.size() - 1) {
               curr_index = lf(i, curr_index, query[i]);
-              s_index = curr_index - this->cols[i].i_k[curr_run + 1];
+              s_index = curr_index - k_vals.first;
               // s_index = ms_supp[i];
               curr_run = index_to_run(curr_index, i + 1);
               symbol = get_next_char(this->cols[i + 1].zero_first, curr_run);
@@ -1672,20 +1764,21 @@ public:
             //    lf(i, curr_index, query[i]) - this->cols[i].i_e_k[curr_run];
             // ms.row_supp[i] = s_index;
             ms_supp[i] = curr_index;
+            k_vals = build_k_vals(lf(i, curr_index, query[i]), curr_pos, i);
 
             if (i == 0) {
               ms.len[i] = 1;
               ms.len_supp[i] = 1;
             } else {
               ms.len[i] = ms.len[i - 1] + 1;
-              ms.len_supp[i] = this->cols[i].l_e_k[curr_run];
+              ms.len_supp[i] = k_vals.second;
               // ms.len_supp[i] = ms.len_supp[i - 1] + 1;
             }
             // ms.len[i] = std::min(ms.len[i], ms.len_supp[i]);
             if (i != query.size() - 1) {
               curr_index = lf(i, curr_index, query[i]);
 
-              s_index = curr_index - this->cols[i].i_e_k[curr_run];
+              s_index = curr_index - k_vals.first;
               curr_run = index_to_run(curr_index, i + 1);
               symbol = get_next_char(this->cols[i + 1].zero_first, curr_run);
               reset = false;
@@ -1727,13 +1820,15 @@ public:
               }
 
               ms.len[i] = len;
-              ms.len_supp[i] = this->cols[i].l_e_k[curr_run];
+              k_vals = build_k_vals(lf(i, curr_index, query[i]), curr_pos, i);
+
+              ms.len_supp[i] = k_vals.second;
 
               // update index, run, symbol (as explained before) if we are
               // not at the end
               if (i != query.size() - 1) {
                 curr_index = lf(i, curr_index, query[i]);
-                s_index = curr_index - this->cols[i].i_e_k[curr_run];
+                s_index = curr_index - k_vals.first;
 
                 // s_index = ms_supp[i];
                 curr_run = index_to_run(curr_index, i + 1);
@@ -1775,12 +1870,14 @@ public:
                 len++;
               }
               ms.len[i] = len;
-              ms.len_supp[i] = this->cols[i].l_e_k[curr_run];
+              k_vals = build_k_vals(lf(i, curr_index, query[i]), curr_pos, i);
+
+              ms.len_supp[i] = k_vals.second;
               // update index, run, symbol (as explained before) if we are
               // not at the end
               if (i != query.size() - 1) {
                 curr_index = lf(i, curr_index, query[i]);
-                s_index = curr_index - this->cols[i].i_e_k[curr_run + 1];
+                s_index = curr_index - k_vals.first;
                 // s_index = ms_supp[i];
                 curr_run = index_to_run(curr_index, i + 1);
                 symbol = get_next_char(this->cols[i + 1].zero_first, curr_run);
@@ -1805,7 +1902,7 @@ public:
               ms.len_supp[i] = 1;
             } else {
               ms.len[i] = ms.len[i - 1] + 1;
-              ms.len_supp[i] = this->cols[i].l_e_k[curr_run];
+              ms.len_supp[i] = ms.len[i];
             }
 
             unsigned int b = this->height - 1;
@@ -1833,7 +1930,9 @@ public:
               }
               b_i = this->cols[i].p[r_b] - 1;
               b = this->cols[i].sample_end[r_b - 1];
-              l_i = this->cols[i].l_e_k[r_b - 1];
+              k_vals = build_k_vals(lf(i, b_i, query[i]), b, i);
+
+              l_i = k_vals.second;
               end = true;
             } else {
               if (verbose) {
@@ -1841,13 +1940,15 @@ public:
               }
               b_i = this->cols[i].p[r_b + 1];
               b = this->cols[i].sample_beg[r_b + 1];
-              l_i = this->cols[i].l_k[r_b + 1];
+              k_vals = build_k_vals(lf(i, b_i, query[i]), b, i);
+
+              l_i = k_vals.second;
             }
             if (verbose) {
               std::cout << "b " << b << " b_i " << b_i << " l_i " << l_i
                         << "\n";
             }
-            ms.len[i] = std::min(ms.len[i], lce(curr_index, b_i, i,ms.len[i]));
+            ms.len[i] = std::min(ms.len[i], lce(curr_index, b_i, i, ms.len[i]));
             auto r_b_i = index_to_run(b_i, i);
             ms.row[i] = b;
             curr_pos = b;
@@ -1856,16 +1957,18 @@ public:
             ms_supp[i] = b_i;
             if (i != query.size() - 1) {
               curr_index = lf(i, b_i, query[i]);
+              k_vals = build_k_vals(curr_index, curr_pos, i);
 
-              if (end) {
-                s_index = curr_index - this->cols[i].i_e_k[r_b_i];
-              } else {
-                s_index = curr_index - this->cols[i].i_k[r_b_i];
-              }
+              // if (end) {
+              //   s_index = curr_index - this->cols[i].i_e_k[r_b_i];
+              // } else {
+              //   s_index = curr_index - this->cols[i].i_k[r_b_i];
+              // }
+              s_index = curr_index - k_vals.first;
 
               if (verbose) {
-                std::cout << "curr " << curr_index << " offset "
-                          << this->cols[i].i_e_k[r_b_i] << "\n";
+                std::cout << "curr " << curr_index << " offset " << k_vals.first
+                          << "\n";
 
                 std::cout << "sindex " << s_index << "\n";
                 std::cout << "ri " << r_b_i << "\n";
@@ -1912,7 +2015,7 @@ public:
    * @param verbose bool for extra prints
    * @return matching statistics matches
    */
-   std::pair<ms, std::vector<unsigned int>>
+  std::pair<ms, std::vector<unsigned int>>
   compute_ms(const std::string &query, bool extend_matches = false,
              bool verbose = false) {
 
@@ -2098,7 +2201,7 @@ public:
     }
 
     return std::make_pair(ms, ms_supp);
-  } 
+  }
 
   /**
    * @brief function to compute queries with thresholds from a transposed
@@ -2265,7 +2368,6 @@ public:
           // std::cout <<  "query: " << i << "\n";
           matches_vec[i] = this->match_thr(queries[i], extend_matches, verbose);
         }
-
         if (this->k_smem < 1) {
           if (extend_matches) {
             for (unsigned int i = 0; i < queries.size(); i++) {
@@ -2619,4 +2721,3 @@ public:
 };
 
 #endif // RLPBWT_RLPBWT_NAIVE_MS_H
-
