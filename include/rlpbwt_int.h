@@ -465,7 +465,7 @@ private:
 
   std::pair<int, int> build_k_vals(unsigned int lf_pos, unsigned int row_index,
                                    unsigned int col_index) {
-    col_index++;
+    col_index = col_index + 1;
     int a = 0;
     if (lf_pos + 2 >= this->k_smem) {
       a = lf_pos - this->k_smem + 2;
@@ -475,11 +475,14 @@ private:
       e = lf_pos + this->k_smem - 1;
     }
     unsigned int div_index = lf_pos - a;
-    std::vector<unsigned int> div(e - a + 1);
+    if (e - a + 1 < 1) {
+      std::cout << "wtf\n";
+    }
+    std::vector<unsigned int> div_tmp(e - a + 1);
     // std::cout << "a " << a << " e " << e << " lf_pos " << lf_pos
     //           << " div_index " << div_index << " row_index " << row_index
     //           << " col_index " << col_index << "\n ";
-    div[div_index] = this->phi->plcp(row_index, col_index);
+    div_tmp[div_index] = this->phi->plcp(row_index, col_index);
     int tmp_index = div_index;
     unsigned int tmp_row = row_index;
     // std::cout << "up\n";
@@ -495,12 +498,12 @@ private:
       tmp_index--;
       // std::cout << "tmp_index " << tmp_index << " tmp_row " << tmp_row << "\n
       // ";
-      div[tmp_index] = this->phi->plcp(tmp_row, col_index);
+      div_tmp[tmp_index] = this->phi->plcp(tmp_row, col_index);
     }
     tmp_index = div_index;
     tmp_row = row_index;
     // std::cout << "down\n";
-    while (tmp_index <= div.size() - 1) {
+    while (tmp_index < div_tmp.size() - 1) {
       auto phi_res = this->phi->phi_inv(tmp_row, col_index);
       if (!phi_res.has_value()) {
         break;
@@ -508,16 +511,17 @@ private:
       tmp_row = phi_res.value();
       tmp_index++;
       // std::cout << "tmp_index " << tmp_index << "\n";
-      div[tmp_index] = this->phi->plcp(tmp_row, col_index);
+      div_tmp[tmp_index] = this->phi->plcp(tmp_row, col_index);
     }
 
-    // for (unsigned int i = 0; i < div.size(); i++) {
-    //   std::cout << div[i] << " ";
+    // for (unsigned int i = 0; i < div_tmp.size(); i++) {
+    //   std::cout << div_tmp[i] << " ";
     // }
     // std::cout << "\n";
     int l_v = 0;
     int i_v = 0;
-    auto sub_m = maxSubvector(div, this->k_smem - 1);
+    auto sub_m = maxSubvector(div_tmp, this->k_smem - 1);
+    div_tmp.clear();
     if (e - a + 1 < this->k_smem - 1) {
       sub_m.second = -1;
     }
@@ -1251,7 +1255,7 @@ public:
         if (verbose) {
           std::cout << "\nextending\n";
         }
-        // extend_haplos(ms_matches, ms_supp);
+        extend_haplos(ms_matches, ms_supp);
       }
 
       if (verbose) {
@@ -1308,31 +1312,31 @@ public:
         if (verbose) {
           std::cout << "\nextending\n";
         }
-        // extend_haplos(ms_matches, ms_supp);
+        extend_haplos(ms_matches, ms_supp);
       }
-      // auto i = 0;
-      // for (auto m : ms_matches.haplos) {
-      //   if (m.size() < this->k_smem) {
-      //     std::cerr << "ERROR: " << m.size() << " < " << this->k_smem <<
-      //     "\n";
-      //     // std::cerr << ms_matches << "\n";
-      //     for (auto e : m) {
-      //       std::cerr << e << " ";
-      //     }
-      //     std::cerr << std::endl;
-      //     std::cerr << std::get<0>(ms_matches.basic_matches[i]) << " "
-      //               << std::get<2>(ms_matches.basic_matches[i]) << " "
-      //               << std::get<1>(ms_matches.basic_matches[i]) << "\n";
-      //     std::cerr << std::endl;
-      //     // break;
-      //     exit(1);
-      //   }
-      //   assert(m.size() >= this->k_smem);
-      //   i++;
-      // }
+
+      auto i = 0;
+      for (auto m : ms_matches.haplos) {
+        if (m.size() < this->k_smem) {
+          std::cerr << "ERROR: " << m.size() << " < " << this->k_smem << "\n";
+          // std::cerr << ms_matches << "\n";
+          for (auto e : m) {
+            std::cerr << e << " ";
+          }
+          std::cerr << std::endl;
+          std::cerr << std::get<0>(ms_matches.basic_matches[i]) << " "
+                    << std::get<2>(ms_matches.basic_matches[i]) << " "
+                    << std::get<1>(ms_matches.basic_matches[i]) << "\n";
+          std::cerr << std::endl;
+          // break;
+          exit(1);
+        }
+        assert(m.size() >= this->k_smem);
+        i++;
+      }
       if (verbose) {
-        // std::cout << ms << "\n";
-        // std::cout << ms_matches << "\n";
+        std::cout << ms << "\n";
+        std::cout << ms_matches << "\n";
       }
       return ms_matches;
     }
@@ -1447,7 +1451,7 @@ public:
 
     char symbol = get_next_char(this->cols[0].zero_first, curr_run);
 
-    auto k_vals = build_k_vals(lf(0, curr_index, query[0]), curr_pos, 0);
+    auto k_vals = build_k_vals(lf(0, curr_index, symbol), curr_pos, 0);
     unsigned int s_index = k_vals.first;
     bool reset = true;
     // auto s_index = lf(0, curr_index, query[0]) -
@@ -1562,8 +1566,8 @@ public:
           //     std::cout << "end_verbose"<< std::endl;
           //     std::cout << std::endl;
           //     std::cout << "start_sindex"<< std::endl;
-          k_vals = build_k_vals(lf(i + 1, curr_index, query[i + 1]), curr_pos,
-                                i + 1);
+          symbol = get_next_char(this->cols[i + 1].zero_first, curr_run);
+          k_vals = build_k_vals(lf(i + 1, curr_index, symbol), curr_pos, i + 1);
           if (verbose) {
 
             std::cout << lf(i + 1, curr_index, query[i + 1]) << " - "
@@ -1575,7 +1579,7 @@ public:
           // std::cout << "end_sindex"<< std::endl;
           //     std::cout << std::endl;
           // std::cout << "start_symbol"<< std::endl;
-          symbol = get_next_char(this->cols[i + 1].zero_first, curr_run);
+
           //  std::cout << "end_symbol"<< std::endl;
           // std::cout << std::endl;
           reset = true;
@@ -1616,8 +1620,8 @@ public:
                                : this->height - 1;
 
               symbol = get_next_char(this->cols[i + 1].zero_first, curr_run);
-              k_vals = build_k_vals(lf(i + 1, curr_index, query[i + 1]),
-                                    curr_pos, i + 1);
+              k_vals =
+                  build_k_vals(lf(i + 1, curr_index, symbol), curr_pos, i + 1);
 
               s_index = lf(i + 1, curr_index, query[i + 1]) - k_vals.first;
               reset = true;
