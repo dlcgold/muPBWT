@@ -1029,13 +1029,17 @@ public:
           // this->cols[count] = col;
           this->cols.emplace_back(col);
           rlpbwt_int::update(new_column, pref, div);
-          if (k_smem > 1) {
-            rlpbwt_int::update_k_intervals(div, verbose);
-          } else {
+          if (k_smem <= 1) {
             this->cols.back().i_k.resize(0);
             this->cols.back().l_k.resize(0);
             this->cols.back().i_e_k.resize(0);
             this->cols.back().l_e_k.resize(0);
+          } else if (k_smem > 1 && count >= 1) {
+            this->cols.back().i_k.resize(0);
+            this->cols.back().l_k.resize(0);
+            this->cols.back().i_e_k.resize(0);
+            this->cols.back().l_e_k.resize(0);
+            // rlpbwt_int::update_k_intervals(div);
           }
           last_col = new_column;
           count++;
