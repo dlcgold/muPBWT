@@ -45,6 +45,7 @@ Options:
   -o, --output <path>	 path to query output
   -q, --query <path>	 path to query file (vcf/bcf)
   -m, --macs	use macs as file format for both input and query file
+  -k, --ksmem <k value> compute k-smems [experimental, not in conda build]
   -v, --verbose	 extra prints
   -d, --details	 print memory usage details
   -h, --help	 show this help message and exit
@@ -57,6 +58,10 @@ Build the index:
 Query the index:
 ```shell
 ./mupbwt -l <index file> -q <query file> -o <output file> 
+```
+Query the index for kSMEMs with pre-computed values [slight more memory, fast, experimental, not in conda build]:
+```shell
+./mupbwt -l <index file> -q <query file> -o <output file> -k <k value>
 ```
 Query without save the index:
 ```shell
