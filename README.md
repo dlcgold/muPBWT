@@ -1,6 +1,6 @@
 # μ-PBWT with k-SMEMs
 Compute k-SMEMs with μ-PBWT.
-At [branch](https://github.com/dlcgold/muPBWT/tree/k-smem) implementation with k
+At [branch](https://github.com/dlcgold/muPBWT/tree/k-smem-live) implementation with k
 values not pre-computed (less memory but slower).
 
 ## Build from source
