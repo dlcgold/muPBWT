@@ -43,12 +43,7 @@ Options:
   -h, --help	 show this help message and exit
 ```
 
-Query the index for kSMEMs with pre-computed values:
-```shell
-./mupbwt -l <index file> -q <query file> -o <output file> -k <k value>
-```
-
-Using examples in `sample_data`:
+Query the index for kSMEMs with pre-computed values, using examples in `sample_data`:
 ```shell
 ./mupbwt -i sample_data/panel.bcf -s sample_data/index.ser -q sample_data/query.bcf -o sample_data/sample_data_results -k 30
 ```
