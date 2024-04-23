@@ -12,12 +12,7 @@ Build μ-PBWT:
 ```shell
 cmake --build build
 ```
-## Install from source (optional)
-Install μ-PBWT (default in `/usr/local/bin/`, `sudo` required):
-```shell
-cmake --install build
-```
-Use `--prefix <path>` for custom path.
+
 
 ## Usage
 File format supported:
@@ -53,7 +48,7 @@ Query the index for kSMEMs with pre-computed values, using examples in `sample_d
 ## Reference
 Bibtex:
 ```
-@article {smems,
+@article {bonizzoni_smems,
 	author = {Bonizzoni, Paola and Boucher, Christina and Cozzi, Davide and  Gagie, Travis and Pirola, Yuri }},
 	title = {Solving the Minimal Positional Substring Cover problem in sublinear space},
 	year = {2024},
