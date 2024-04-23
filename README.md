@@ -46,6 +46,7 @@ Options:
 Query the index for kSMEMs with pre-computed values:
 ```shell
 ./mupbwt -l <index file> -q <query file> -o <output file> -k <k value>
+```
 
 Using examples in `sample_data`:
 ```shell
