@@ -59,6 +59,6 @@ Bibtex:
 	year = {2024},
 	doi = {10.4230/LIPIcs.CPM.2024.2},
 	booktitle={35th Annual Symposium on Combinatorial Pattern Matching (CPM 2024)},
-  organization={Schloss Dagstuhl-Leibniz-Zentrum f{\"u}r Informatik}
+  	organization={Schloss Dagstuhl-Leibniz-Zentrum f{\"u}r Informatik}
 }
 ```
