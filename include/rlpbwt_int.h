@@ -7,11 +7,11 @@
 
 #include <cstdio>
 #include <iterator>
+#include <sdsl/int_vector.hpp>
 #include <string>
 #include <type_traits>
-#include <vector>
 #include <unordered_set>
-#include <sdsl/int_vector.hpp>
+#include <vector>
 
 #include "exceptions.h"
 #include "htslib/vcf.h"
@@ -1086,45 +1086,53 @@ public:
     return std::make_pair(ms, ms_supp);
   }
 
-  
-
-
-std::vector<unsigned int> intersection(std::vector<unsigned int> v1,
-                                      std::vector<unsigned int> v2){
+  std::vector<unsigned int> intersection(std::vector<unsigned int> v1,
+                                         std::vector<unsigned int> v2) {
     std::vector<unsigned int> v3;
 
     std::sort(v1.begin(), v1.end());
     std::sort(v2.begin(), v2.end());
 
-    std::set_intersection(v1.begin(),v1.end(),
-                          v2.begin(),v2.end(),
-                          back_inserter(v3));
-    return v3;
-}
-
-std::vector<std::pair<unsigned int, unsigned int>>  intersection_pairs(std::vector<std::pair<unsigned int, unsigned int>>  v1,
-                                      std::vector<std::pair<unsigned int, unsigned int>>  v2){
-    std::vector<std::pair<unsigned int, unsigned int>>  v3;
-
-    std::sort(v1.begin(), v1.end());
-    std::sort(v2.begin(), v2.end());
-
-    std::set_intersection(v1.begin(),v1.end(),
-                          v2.begin(),v2.end(),
+    std::set_intersection(v1.begin(), v1.end(), v2.begin(), v2.end(),
                           back_inserter(v3));
     return v3;
   }
 
-  std::vector<unsigned int> red_pairs(std::vector<std::pair<unsigned int, unsigned int>> p){
+  std::vector<std::pair<unsigned int, unsigned int>>
+  intersection_pairs(std::vector<std::pair<unsigned int, unsigned int>> v1,
+                     std::vector<std::pair<unsigned int, unsigned int>> v2) {
+    std::vector<std::pair<unsigned int, unsigned int>> v3;
+
+    std::sort(v1.begin(), v1.end());
+    std::sort(v2.begin(), v2.end());
+
+    std::set_intersection(v1.begin(), v1.end(), v2.begin(), v2.end(),
+                          back_inserter(v3));
+    return v3;
+  }
+
+  std::vector<std::pair<unsigned int, unsigned int>>
+  filter_comp(std::vector<std::pair<unsigned int, unsigned int>> p,
+              std::vector<unsigned int> r) {
+    std::vector<std::pair<unsigned int, unsigned int>> res;
+    std::set<unsigned int> s(r.begin(), r.end());
+    for (auto e : p) {
+      if (s.find(e.first) != s.end() && s.find(e.second) != s.end())
+        res.push_back({e});
+    }
+    return res;
+  }
+  std::vector<unsigned int>
+  red_pairs(std::vector<std::pair<unsigned int, unsigned int>> p) {
     std::vector<unsigned int> res;
-    for(auto pp: p){
+    for (auto pp : p) {
       res.push_back(pp.first);
       res.push_back(pp.second);
     }
     std::unordered_set<unsigned int> s;
     for (int i : res)
       s.insert(i);
-    res.assign( s.begin(), s.end());
+    res.assign(s.begin(), s.end());
     sort(res.begin(), res.end());
     return res;
   }
@@ -1148,7 +1156,7 @@ std::vector<std::pair<unsigned int, unsigned int>>  intersection_pairs(std::vect
     for (unsigned int i = 0; i < n_queries; i++) {
       // std::cout <<  "query: " << i << "\n";
       matches_vec[i] = this->left_mpsc(queries_panel[i], true);
-      out_match<< i << "\n" << matches_vec[i];
+      out_match << i << "\n" << matches_vec[i];
 
       unsigned int j = matches_vec[i].basic_matches.size() - 1;
       std::vector<unsigned int> r_rows;
@@ -1159,91 +1167,114 @@ std::vector<std::pair<unsigned int, unsigned int>>  intersection_pairs(std::vect
       std::vector<std::vector<unsigned int>> mat;
       std::vector<std::pair<unsigned int, unsigned int>> comp;
       std::vector<std::pair<unsigned int, unsigned int>> comp_supp;
-      std::vector<std::pair<std::vector<std::pair<unsigned int, unsigned int>>, unsigned int>> recomb;
+      std::vector<std::pair<std::vector<std::pair<unsigned int, unsigned int>>,
+                            unsigned int>>
+          recomb;
       bool is_recomb = false;
       unsigned int len_pref = 0;
       unsigned int len_suff = 0;
       int k = 0;
-      while(k < queries_panel[i].size() && queries_panel[i][k] == '2'){
+      while (k < queries_panel[i].size() && queries_panel[i][k] == '2') {
         len_pref++;
         k++;
       }
       k = queries_panel[i].size() - 1;
 
-      while(k >= 0 && queries_panel[i][k] == '2'){
+      while (k >= 0 && queries_panel[i][k] == '2') {
         len_suff++;
         k--;
       }
 
-        // r_rows = matches_vec[i].haplos[matches_vec[i].haplos.size() - 1];
-        // l_rows = matches_vec[i].haplos[matches_vec[i].haplos.size() - 2];
-        // rows = intersection(r_rows, l_rows);
-        // l_col = std::get<2>(matches_vec[i].basic_matches[matches_vec[i].basic_matches.size() - 1]) + 1;
-        // r_col = std::get<2>(matches_vec[i].basic_matches[matches_vec[i].basic_matches.size() - 2]) - 
-        // std::get<1>(matches_vec[i].basic_matches[matches_vec[i].basic_matches.size() - 2]);
-        // mat = get_sub_matrix(rows, l_col, r_col);
-        // comp = get_comp(mat);
-        // l_rows = red_pairs(comp);
-        //
+      // r_rows = matches_vec[i].haplos[matches_vec[i].haplos.size() - 1];
+      // l_rows = matches_vec[i].haplos[matches_vec[i].haplos.size() - 2];
+      // rows = intersection(r_rows, l_rows);
+      // l_col =
+      // std::get<2>(matches_vec[i].basic_matches[matches_vec[i].basic_matches.size()
+      // - 1]) + 1; r_col =
+      // std::get<2>(matches_vec[i].basic_matches[matches_vec[i].basic_matches.size()
+      // - 2]) -
+      // std::get<1>(matches_vec[i].basic_matches[matches_vec[i].basic_matches.size()
+      // - 2]); mat = get_sub_matrix(rows, l_col, r_col); comp = get_comp(mat);
+      // l_rows = red_pairs(comp);
+      //
 
       l_rows = matches_vec[i].haplos[j];
 
-      if(len_pref != 0) {
+      if (len_pref != 0) {
         std::vector<unsigned int> v(this->height);
-        std::iota (std::begin(v), std::end(v), 0);
+        std::iota(std::begin(v), std::end(v), 0);
         mat = get_sub_matrix(v, 0, len_pref - 1);
         comp = get_comp(mat, v);
         l_rows = red_pairs(comp);
       }
-
-      while(j > 1){
+      // TODO aggiungere switch tra mpsc consecutivi senxa 2 in mezzo
+      while (j > 1) {
         r_rows = matches_vec[i].haplos[j - 1];
         rows = intersection(r_rows, l_rows);
         l_col = std::get<2>(matches_vec[i].basic_matches[j]) + 1;
-        r_col = std::get<2>(matches_vec[i].basic_matches[j - 1]) - std::get<1>(matches_vec[i].basic_matches[j - 1]);
-        mat = get_sub_matrix(rows, l_col, r_col);
-        comp_supp = get_comp(mat, rows);
-        if(j == matches_vec[i].basic_matches.size() - 1 && len_pref == 0){
-          l_rows = red_pairs(comp_supp);
-          comp = comp_supp;
-        }else{
-          comp = intersection_pairs(comp, comp_supp);
+        r_col = std::get<2>(matches_vec[i].basic_matches[j - 1]) -
+                std::get<1>(matches_vec[i].basic_matches[j - 1]);
+        if ((l_col - 1) == r_col) {
+          comp = filter_comp(comp, r_rows);
           l_rows = red_pairs(comp);
-        }
-        if(!comp.empty()){
-          if(recomb.empty()){
-            recomb.push_back({comp, std::get<2>(matches_vec[i].basic_matches[j - 1])});
-          }else{
-            recomb[recomb.size() - 1] = {comp, std::get<2>(matches_vec[i].basic_matches[j - 1])};
-          }
-        }else{
           is_recomb = true;
-          std::vector<unsigned int> v(this->height);
-          std::iota (std::begin(v), std::end(v), 0);
-          mat = get_sub_matrix(v, l_col, r_col);
-          comp = get_comp(mat, v);
-          l_rows = red_pairs(comp);
-          recomb.push_back({comp, std::get<2>(matches_vec[i].basic_matches[j])});
+          if (recomb.empty()) {
+            recomb.push_back(
+                {comp, std::get<2>(matches_vec[i].basic_matches[j - 1])});
+          } else {
+            recomb[recomb.size() - 1] = {
+                comp, std::get<2>(matches_vec[i].basic_matches[j - 1])};
+          }
+        } else {
+          mat = get_sub_matrix(rows, l_col, r_col);
+          // TODO se mat vuota intersezione tra pairs e nuove righe (dei pairs
+          // tengo solo quelle con righe negli haplosm di MPSC successiva)
+          comp_supp = get_comp(mat, rows);
+          if (j == matches_vec[i].basic_matches.size() - 1 && len_pref == 0) {
+            l_rows = red_pairs(comp_supp);
+            comp = comp_supp;
+          } else {
+            comp = intersection_pairs(comp, comp_supp);
+            l_rows = red_pairs(comp);
+          }
+          if (!comp.empty()) {
+            if (recomb.empty()) {
+              recomb.push_back(
+                  {comp, std::get<2>(matches_vec[i].basic_matches[j - 1])});
+            } else {
+              recomb[recomb.size() - 1] = {
+                  comp, std::get<2>(matches_vec[i].basic_matches[j - 1])};
+            }
+          } else {
+            is_recomb = true;
+            std::vector<unsigned int> v(this->height);
+            std::iota(std::begin(v), std::end(v), 0);
+            mat = get_sub_matrix(v, l_col, r_col);
+            comp = get_comp(mat, v);
+            l_rows = red_pairs(comp);
+            recomb.push_back(
+                {comp, std::get<2>(matches_vec[i].basic_matches[j])});
+          }
         }
         j--;
       }
 
-      if(len_suff != 0) {
+      if (len_suff != 0) {
         mat = get_sub_matrix(l_rows, this->width - len_suff, this->width - 1);
         comp_supp = get_comp(mat, l_rows);
         comp = intersection_pairs(comp, comp_supp);
       }
 
-      if(!is_recomb){
+      if (!is_recomb) {
         std::cout << "@" << i << std::endl;
-        for(auto c: comp){
+        for (auto c : comp) {
           std::cout << "(" << c.first << ", " << c.second << ")\n";
         }
-      }else{
+      } else {
         std::cout << "@" << i << std::endl;
-        for(auto r_comp: recomb){
+        for (auto r_comp : recomb) {
           std::cout << "[ ";
-          for (auto c: r_comp.first){
+          for (auto c : r_comp.first) {
             std::cout << "(" << c.first << ", " << c.second << ") ";
           }
           std::cout << ", " << r_comp.second << "]; ";
@@ -1594,11 +1625,12 @@ std::vector<std::pair<unsigned int, unsigned int>>  intersection_pairs(std::vect
   }
 
   std::vector<std::pair<unsigned int, unsigned int>>
-  get_comp(const std::vector<std::vector<unsigned int>> &mat, std::vector<unsigned int> r) {
+  get_comp(const std::vector<std::vector<unsigned int>> &mat,
+           std::vector<unsigned int> r) {
     std::vector<std::pair<unsigned int, unsigned int>> result;
-//#pragma omp parallel for
+    // #pragma omp parallel for
     for (size_t i = 0; i < mat.size(); ++i) {
-//#pragma omp parallel for
+      // #pragma omp parallel for
       for (size_t j = i + 1; j < mat.size(); ++j) {
         if (check_comp(mat[i], mat[j])) {
           result.emplace_back(r[i], r[j]);
