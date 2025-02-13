@@ -2,6 +2,7 @@
 #include "include/rlpbwt_int.h"
 #include <getopt.h>
 #include <iostream>
+#include <sdsl/sd_vector.hpp>
 #include <set>
 #include <unordered_set>
 #include <vector>
@@ -31,6 +32,84 @@ std::vector<unsigned int> getIntersection(const std::set<unsigned int> &set1,
 
   return intersection;
 }
+
+std::tuple<std::vector<sdsl::sd_vector<>>, std::vector<std::string>,
+           std::vector<unsigned int>>
+build_ref(std::string filename) {
+
+  std::vector<sdsl::bit_vector> panel_tmp;
+  std::vector<sdsl::sd_vector<>> panel;
+  std::vector<std::string> samples;
+  std::vector<unsigned int> sites;
+
+  htsFile *fp = hts_open(filename.c_str(), "rb");
+  std::cout << "Reading reference VCF file...\n";
+  if (fp == NULL) {
+    throw FileNotFoundException{};
+  }
+
+  bcf_hdr_t *hdr = bcf_hdr_read(fp);
+  bcf1_t *rec = bcf_init();
+  auto height = bcf_hdr_nsamples(hdr) * 2;
+  auto width = 0;
+  for (int i = 0; i < bcf_hdr_nsamples(hdr); i++) {
+    samples.push_back(std::string(hdr->samples[i]));
+  }
+  fp = hts_open(filename.c_str(), "rb");
+  hdr = bcf_hdr_read(fp);
+  rec = bcf_init();
+
+  // this->cols = std::vector<rl_column>(this->width + 1);
+
+  unsigned int count = 0;
+  std::string last_col;
+  std::string last_column;
+  std::string new_column;
+
+  // iterate each vcf record
+  while (bcf_read(fp, hdr, rec) >= 0) {
+    // if (auto search = ps.find(rec->pos); search == ps.end())
+    //   continue;
+    width++;
+    sites.push_back(rec->pos);
+    // std::cout << rec->pos << "\n";
+    new_column = "";
+    sdsl::bit_vector tmp(height);
+    int bi = 0;
+    bcf_unpack(rec, BCF_UN_ALL);
+    // read SAMPLE
+    int32_t *gt_arr = NULL, ngt_arr = 0;
+    int i, j, ngt, nsmpl = bcf_hdr_nsamples(hdr);
+    ngt = bcf_get_genotypes(hdr, rec, &gt_arr, &ngt_arr);
+    int max_ploidy = ngt / nsmpl;
+    for (i = 0; i < nsmpl; i++) {
+      int32_t *ptr = gt_arr + i * max_ploidy;
+      for (j = 0; j < max_ploidy; j++) {
+        // if true, the sample has smaller ploidy
+        if (ptr[j] == bcf_int32_vector_end)
+          break;
+
+        // missing allele
+        if (bcf_gt_is_missing(ptr[j]))
+          exit(-1);
+
+        // the VCF 0-based allele index
+        int allele_index = bcf_gt_allele(ptr[j]);
+        tmp[bi] = allele_index;
+        bi++;
+      }
+    }
+    panel_tmp.push_back(tmp);
+    free(gt_arr);
+  }
+  panel = tb(panel_tmp);
+
+  bcf_hdr_destroy(hdr);
+  hts_close(fp);
+  bcf_destroy(rec);
+
+  return {panel, samples, sites};
+}
 std::vector<std::string> extractAltRef(char *als) {
   std::vector<std::string> res;
   std::string str = "";
@@ -48,6 +127,48 @@ std::vector<std::string> extractAltRef(char *als) {
   }
   return res;
 }
+std::vector<std::vector<std::string>> get_ref_info(std::string reference) {
+  std::vector<std::vector<std::string>> data;
+  htsFile *fp = hts_open(reference.c_str(), "rb");
+  bcf_hdr_t *hdr = bcf_hdr_read(fp);
+  bcf1_t *rec = bcf_init();
+  // bcf_unpack(rec, BCF_UN_STR);
+  while (bcf_read(fp, hdr, rec) >= 0) {
+    bcf_unpack(rec, BCF_UN_ALL);
+
+    std::vector<std::string> tmp;
+    tmp.push_back(std::string(bcf_hdr_id2name(hdr, rec->rid)));
+    tmp.push_back(std::to_string(rec->pos + 1));
+    tmp.push_back(std::string(rec->d.id ? rec->d.id : "."));
+
+    // tmp.push_back(std::string(rec->d.allele[0]));
+    // char alt_buffer[1024] = "";
+    // for (int i = 1; i < rec->n_allele; i++) {
+    //   std::strcat(alt_buffer, rec->d.allele[i]);
+    //   if (i < rec->n_allele - 1)
+    //     std::strcat(alt_buffer, ",");
+    // }
+    // tmp.push_back(std::string(alt_buffer));
+
+    std::vector<std::string> altRef = extractAltRef(rec->d.als);
+    tmp.push_back(altRef[0]);
+    tmp.push_back(altRef[1]);
+    tmp.push_back(std::to_string(rec->qual));
+    // filter
+    tmp.push_back(".");
+    // info
+    tmp.push_back(".");
+    tmp.push_back("GT");
+    // std::cout << tmp[0] << " " << tmp[1] << " " << tmp[2] << tmp[3] << " "
+    //           << tmp[4] << " " << tmp[5] << "\n";
+    data.push_back(tmp);
+  }
+  // std::cout << ps.size() << "\n";
+  bcf_hdr_destroy(hdr);
+  hts_close(fp);
+  bcf_destroy(rec);
+  return data;
+}
 
 int main(int argc, char **argv) {
   // TODO option to print stats
@@ -63,6 +184,7 @@ int main(int argc, char **argv) {
   // std::string memorize_file = "";
   // std::string load_file = "";
   std::string output = "";
+  std::string reference = "";
   std::string query_input = "";
   int c;
 
@@ -125,6 +247,7 @@ int main(int argc, char **argv) {
   while (true) {
     static struct option long_options[] = {
         {"input", required_argument, nullptr, 'i'},
+        {"ref", required_argument, nullptr, 'r'},
         {"output", required_argument, nullptr, 'o'},
         {"query", required_argument, nullptr, 'q'},
         //{"extend",   no_argument,       nullptr, 'e'},
@@ -134,7 +257,7 @@ int main(int argc, char **argv) {
         {nullptr, 0, nullptr, 0}};
 
     int option_index = 0;
-    c = getopt_long(argc, argv, "i:o:q:evdh", long_options, &option_index);
+    c = getopt_long(argc, argv, "i:o:r:q:evdh", long_options, &option_index);
 
     if (c == -1) {
       break;
@@ -149,6 +272,9 @@ int main(int argc, char **argv) {
       break;
     case 'q':
       query_input = optarg;
+      break;
+    case 'r':
+      reference = optarg;
       break;
     case 'd':
       details = true;
@@ -166,10 +292,13 @@ int main(int argc, char **argv) {
   }
 
   if (matrix_input.empty()) {
-    std::cerr << "Error: input or load file required\n";
+    std::cerr << "Error: input required\n";
     exit(EXIT_FAILURE);
   }
-
+  if (reference.empty()) {
+    std::cerr << "Error: reference required\n";
+    exit(EXIT_FAILURE);
+  }
   if (output.empty()) {
     std::cerr << "Error: output file required\n";
     exit(EXIT_FAILURE);
@@ -178,6 +307,8 @@ int main(int argc, char **argv) {
     std::cerr << "Error: query file required\n";
     exit(EXIT_FAILURE);
   }
+
+  auto data_ref = build_ref(reference);
 
   htsFile *fp1 = hts_open(query_input.c_str(), "rb");
   std::cout << "Reading VCF file...\n";
@@ -206,9 +337,11 @@ int main(int argc, char **argv) {
   }
   std::unordered_set<unsigned int> ps2;
   std::vector<std::string> tmp;
+  std::vector<unsigned int> s;
   while (bcf_read(fp2, hdr2, rec2) >= 0) {
     bcf_unpack(rec2, BCF_UN_ALL);
     ps2.insert(rec2->pos);
+    s.push_back(rec2->pos);
   }
   // std::cout << ps2.size() << "\n";
   bcf_hdr_destroy(hdr2);
@@ -269,7 +402,8 @@ int main(int argc, char **argv) {
   std::cout << "Reference index built in: " << time_build << " s\n";
   START = clock();
   rlpbwt.query_match(matrix_input.c_str(), query_input.c_str(), output.c_str(),
-                     ps, ps2, samples, samples_r, data, verbose);
+                     ps, ps2, samples, samples_r, s, data,
+                     get_ref_info(reference), data_ref, verbose);
   std::cout << "Unphased panel phased in: " << time_build << " s\n";
   // if (!query_input.empty()) {
   //   query = true;
