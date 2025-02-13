@@ -27,6 +27,30 @@
 #include <utility>
 #include <vector>
 
+std::vector<sdsl::sd_vector<>> tb(const std::vector<sdsl::bit_vector> &matrix) {
+  if (matrix.empty())
+    return {};
+
+  size_t rows = matrix.size();
+  size_t cols = matrix[0].size();
+
+  std::vector<sdsl::bit_vector> transposed(cols, sdsl::bit_vector(rows, 0));
+
+  for (size_t i = 0; i < rows; ++i) {
+    for (size_t j = 0; j < cols; ++j) {
+      transposed[j][i] = matrix[i][j];
+    }
+  }
+
+  std::vector<sdsl::sd_vector<>> compressed_transposed;
+  for (const auto &bv : transposed) {
+    sdsl::sd_vector<> sdv(bv);
+    compressed_transposed.push_back(sdv);
+  }
+
+  return compressed_transposed;
+}
+
 /**
  * @brief data structure for matching-statistics supported RLPBWT naive
  */
@@ -1016,30 +1040,6 @@ public:
       this->phi = nullptr;
       this->is_extended = false;
     }
-  }
-  std::vector<sdsl::sd_vector<>>
-  tb(const std::vector<sdsl::bit_vector> &matrix) {
-    if (matrix.empty())
-      return {};
-
-    size_t rows = matrix.size();
-    size_t cols = matrix[0].size();
-
-    std::vector<sdsl::bit_vector> transposed(cols, sdsl::bit_vector(rows, 0));
-
-    for (size_t i = 0; i < rows; ++i) {
-      for (size_t j = 0; j < cols; ++j) {
-        transposed[j][i] = matrix[i][j];
-      }
-    }
-
-    std::vector<sdsl::sd_vector<>> compressed_transposed;
-    for (const auto &bv : transposed) {
-      sdsl::sd_vector<> sdv(bv);
-      compressed_transposed.push_back(sdv);
-    }
-
-    return compressed_transposed;
   }
 
   std::vector<unsigned int> slice_sd_vector(const sdsl::sd_vector<> &sdv,
@@ -2187,17 +2187,25 @@ public:
     return result;
   }
 
-  void query_match(const char *ref, const char *filename, const char *out,
-                   std::unordered_set<unsigned int> ps,
-                   std::unordered_set<unsigned int> ps2,
-                   std::vector<std::string> samples_t,
-                   std::vector<std::string> samples,
-                   std::vector<std::vector<std::string>> data, bool v = false) {
+  void
+  query_match(const char *ref, const char *filename, const char *out,
+              std::unordered_set<unsigned int> ps,
+              std::unordered_set<unsigned int> ps2,
+              std::vector<std::string> samples_t,
+              std::vector<std::string> samples, std::vector<unsigned int> sites,
+              std::vector<std::vector<std::string>> data_t,
+              std::vector<std::vector<std::string>> data,
+              std::tuple<std::vector<sdsl::sd_vector<>>,
+                         std::vector<std::string>, std::vector<unsigned int>>
+                  ref_data,
+              bool v = false) {
     std::ofstream out_match(out);
     std::string new_row;
     std::string line;
     std::vector<std::string> queries_panel;
-
+    auto ref_panel = std::get<0>(ref_data);
+    auto ref_samples = std::get<1>(ref_data);
+    auto ref_sites = std::get<2>(ref_data);
     // while (getline(input_matrix, line) && !line.empty()) {
     //   std::istringstream is_col(line);
     //   is_col >> new_row;
@@ -2419,6 +2427,9 @@ public:
       std::vector<std::pair<std::vector<std::pair<unsigned int, unsigned int>>,
                             unsigned int>>
           recomb_f;
+      std::vector<unsigned int> target_pos;
+      for (auto d : data_t)
+        target_pos.push_back(std::stoi(d[1]) - 1);
       // std::cout << comp.size() << " " << recomb.size() << "\n";
       //  for (auto c : comp) {
       //    std::cout << "(" << c.first << ", " << c.second << ")\n";
@@ -2475,16 +2486,26 @@ public:
         // auto h2 = gh(ref, samples[int(std::floor(comp[0].second / 2))], hap2,
         //              ps, fpr2, hdrr2);
 
-        auto h1 = slice_sd_vector(this->panel[comp[0].first], 0, this->width);
-        auto h2 = slice_sd_vector(this->panel[comp[0].second], 0, this->width);
-        phased_haplos.push_back(h1);
-        phased_haplos.push_back(h2);
+        // auto h1 = slice_sd_vector(this->panel[comp[0].first], 0,
+        // this->width); auto h2 = slice_sd_vector(this->panel[comp[0].second],
+        // 0, this->width); phased_haplos.push_back(h1);
+        // phased_haplos.push_back(h2);
+        std::vector<unsigned int> samples_ref1(this->width, comp[0].first);
+        std::vector<unsigned int> samples_ref2(this->width, comp[0].second);
+        auto map_pos1 = get_ref_pos(samples_ref1, target_pos, ref_sites);
+        auto map_pos2 = get_ref_pos(samples_ref2, target_pos, ref_sites);
+        std::vector<unsigned int> tmp1 = getfromref(ref_panel, map_pos1);
+        std::vector<unsigned int> tmp2 = getfromref(ref_panel, map_pos2);
+        phased_haplos.push_back(tmp1);
+        phased_haplos.push_back(tmp2);
       } else {
         // TODO check existence of recomb
         // std::cout << "@" << i << std::endl;
         std::vector<unsigned int> tmp1;
         std::vector<unsigned int> tmp2;
         unsigned int start = 0;
+        std::vector<unsigned int> samples_ref1(this->width);
+        std::vector<unsigned int> samples_ref2(this->width);
         for (auto r_comp : recomb) {
           if (r_comp.second == this->width)
             r_comp.second--;
@@ -2498,13 +2519,26 @@ public:
           //     gh(ref, samples[int(std::floor(r_comp.first[0].second / 2))],
           //        hap2, ps, fpr2, hdrr2);
 
-          auto h1 = slice_sd_vector(this->panel[r_comp.first[0].first], start,
-                                    r_comp.second);
-          auto h2 = slice_sd_vector(this->panel[r_comp.first[0].second], start,
-                                    r_comp.second);
-          //
-          tmp1.insert(tmp1.end(), h1.begin(), h1.end());
-          tmp2.insert(tmp2.end(), h2.begin(), h2.end());
+          // auto h1 = slice_sd_vector(this->panel[r_comp.first[0].first],
+          // start,
+          //                           r_comp.second);
+          // auto h2 = slice_sd_vector(this->panel[r_comp.first[0].second],
+          // start,
+          //                           r_comp.second);
+          // //
+          // tmp1.insert(tmp1.end(), h1.begin(), h1.end());
+          // tmp2.insert(tmp2.end(), h2.begin(), h2.end());
+          for (int ii = start; ii <= r_comp.second; ii++) {
+            samples_ref1[ii] = r_comp.first[0].first;
+            // samples[int(std::floor(r_comp.first[0].first / 2))];
+            samples_ref2[ii] = r_comp.first[0].second;
+            // samples[int(std::floor(r_comp.first[0].second / 2))];
+            //  samples_ref1[ii] =
+            //      samples[int(std::floor(r_comp.first[0].first / 2))];
+            //  samples_ref2[ii] =
+            //      samples[int(std::floor(r_comp.first[0].second / 2))];
+          }
+
           start = r_comp.second + 1;
           // std::cout << "[ ";
           //  for (auto c : r_comp.first) {
@@ -2512,8 +2546,18 @@ public:
           //  }
           // std::cout << ", " << r_comp.second << "]; ";
         }
+        // for (auto x : ref_sites) {
+        //   std::cout << x << "\n";
+        // }
+        auto map_pos1 = get_ref_pos(samples_ref1, target_pos, ref_sites);
+        auto map_pos2 = get_ref_pos(samples_ref2, target_pos, ref_sites);
+        tmp1 = getfromref(ref_panel, map_pos1);
+        tmp2 = getfromref(ref_panel, map_pos2);
         phased_haplos.push_back(tmp1);
         phased_haplos.push_back(tmp2);
+        // for (auto x : ref_panel) {
+        //   std::cout << x << "\n";
+        // }
         // std::cout << std::endl;
       }
       // bcf_hdr_destroy(hdrr2);
@@ -2553,8 +2597,8 @@ public:
       }
     }
     chra.erase(chra.size() - 1);
-    std::string header =
-        "##contig=<ID=" + chra + ",length=" + data[data.size() - 1][1] + ">";
+    std::string header = "##contig=<ID=" + chra + ",length=" +
+                         std::to_string(ref_sites[ref_sites.size() - 1]) + ">";
     bcf_hdr_append(hdro, "##fileformat=VCFv4.2");
     bcf_hdr_append(hdro, header.c_str());
     bcf_hdr_append(
@@ -2585,7 +2629,8 @@ public:
 
       int32_t gt_arr[samples_t.size() * 2];
       for (int j = 0; j < samples_t.size(); j++) {
-        // std::cout << "writing: " << hs[j][i].first << " " << hs[j][i].second
+        // std::cout << "writing: " << hs[j][i].first << " " <<
+        // hs[j][i].second
         //           << "\n";
         gt_arr[j * 2] = bcf_gt_phased(hs[j][i].first);
         gt_arr[j * 2 + 1] = bcf_gt_phased(hs[j][i].second);
@@ -2602,6 +2647,94 @@ public:
     }
     bcf_hdr_destroy(hdro);
     bcf_close(fpo);
+  }
+
+  std::vector<unsigned int> getfromref(
+      const std::vector<sdsl::sd_vector<>> &matrix,
+      const std::vector<std::tuple<unsigned int, size_t, size_t>> &intervals) {
+
+    std::vector<unsigned int> result;
+
+    if (matrix.empty())
+      return result;
+
+    unsigned int rowIdx = std::get<0>(intervals[0]);
+    size_t startIdx = std::get<1>(intervals[0]);
+    size_t endIdx = std::get<2>(intervals[0]);
+
+    for (auto &i : intervals) {
+      auto h = slice_sd_vector(matrix[std::get<0>(i)], std::get<1>(i),
+                               std::get<2>(i));
+      result.insert(result.end(), h.begin(), h.end());
+    }
+
+    return result;
+  }
+
+  std::vector<std::tuple<unsigned int, size_t, size_t>>
+  get_ref_pos(const std::vector<unsigned int> &samples,
+              const std::vector<unsigned int> &target_pos,
+              const std::vector<unsigned int> &ref_pos) {
+
+    // std::vector<unsigned int> res(ref_pos.size());
+    // size_t i = 0;
+    // unsigned int lastValue = 0;
+
+    // for (size_t j = 0; j < ref_pos.size(); ++j) {
+    //   if (i < target_pos.size() && ref_pos[j] == target_pos[i]) {
+    //     lastValue = samples[i];
+    //     ++i;
+    //   }
+    //   res[j] = lastValue;
+    // }
+
+    // return res;
+    //
+    std::vector<std::tuple<unsigned int, size_t, size_t>> intervals;
+    size_t i = 0;
+    size_t start_idx = 0;
+    unsigned int lastValue = samples[0];
+
+    for (size_t j = 0; j < ref_pos.size(); ++j) {
+      if (i + 1 < target_pos.size() && ref_pos[j] >= target_pos[i + 1]) {
+        intervals.emplace_back(lastValue, start_idx, j);
+        start_idx = j + 1;
+        lastValue = samples[++i];
+      }
+    }
+
+    intervals.emplace_back(lastValue, start_idx, ref_pos.size() - 1);
+
+    return compactIntervals(intervals);
+  }
+  std::vector<std::tuple<unsigned int, size_t, size_t>> compactIntervals(
+      const std::vector<std::tuple<unsigned int, size_t, size_t>> &intervals) {
+
+    if (intervals.empty())
+      return {};
+
+    std::vector<std::tuple<unsigned int, size_t, size_t>> compacted;
+    unsigned int current_value = std::get<0>(intervals[0]);
+    size_t start_idx = std::get<1>(intervals[0]);
+    size_t end_idx = std::get<2>(intervals[0]);
+
+    for (size_t i = 1; i < intervals.size(); ++i) {
+      unsigned int value = std::get<0>(intervals[i]);
+      size_t new_start = std::get<1>(intervals[i]);
+      size_t new_end = std::get<2>(intervals[i]);
+
+      if (value == current_value && new_start == end_idx + 1) {
+        end_idx = new_end;
+      } else {
+        compacted.emplace_back(current_value, start_idx, end_idx);
+        current_value = value;
+        start_idx = new_start;
+        end_idx = new_end;
+      }
+    }
+
+    compacted.emplace_back(current_value, start_idx, end_idx);
+    return compacted;
   }
 
   std::vector<std::vector<std::pair<unsigned int, unsigned int>>>
