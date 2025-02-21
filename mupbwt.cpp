@@ -140,7 +140,6 @@ std::vector<std::vector<std::string>> get_ref_info(std::string reference) {
     tmp.push_back(std::string(bcf_hdr_id2name(hdr, rec->rid)));
     tmp.push_back(std::to_string(rec->pos + 1));
     tmp.push_back(std::string(rec->d.id ? rec->d.id : "."));
-
     // tmp.push_back(std::string(rec->d.allele[0]));
     // char alt_buffer[1024] = "";
     // for (int i = 1; i < rec->n_allele; i++) {
@@ -186,6 +185,7 @@ int main(int argc, char **argv) {
   std::string output = "";
   std::string reference = "";
   std::string query_input = "";
+  bool unsafe = false;
   int c;
 
   // while (true) {
@@ -253,11 +253,12 @@ int main(int argc, char **argv) {
         //{"extend",   no_argument,       nullptr, 'e'},
         {"details", no_argument, nullptr, 'd'},
         {"verbose", no_argument, nullptr, 'v'},
+        {"unsafe", no_argument, nullptr, 'u'},
         {"help", no_argument, nullptr, 'h'},
         {nullptr, 0, nullptr, 0}};
 
     int option_index = 0;
-    c = getopt_long(argc, argv, "i:o:r:q:evdh", long_options, &option_index);
+    c = getopt_long(argc, argv, "i:o:r:q:evudh", long_options, &option_index);
 
     if (c == -1) {
       break;
@@ -281,6 +282,9 @@ int main(int argc, char **argv) {
       break;
     case 'v':
       verbose = true;
+      break;
+    case 'u':
+      unsafe = true;
       break;
     case 'h':
       printHelp();
@@ -403,7 +407,8 @@ int main(int argc, char **argv) {
   START = clock();
   rlpbwt.query_match(matrix_input.c_str(), query_input.c_str(), output.c_str(),
                      ps, ps2, samples, samples_r, s, data,
-                     get_ref_info(reference), data_ref, verbose);
+                     get_ref_info(reference), data_ref, unsafe, verbose);
+  time_build = (float)(clock() - START) / CLOCKS_PER_SEC;
   std::cout << "Unphased panel phased in: " << time_build << " s\n";
   // if (!query_input.empty()) {
   //   query = true;
