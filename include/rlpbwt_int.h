@@ -15,9 +15,11 @@
 #include "utils.h"
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <cstdlib>
 #include <deque>
 #include <iostream>
+#include <memory>
 #include <sdsl/bit_vectors.hpp>
 #include <sdsl/int_vector.hpp>
 #include <sdsl/sd_vector.hpp>
@@ -723,6 +725,22 @@ private:
       haplos.emplace_back(start_row);
       unsigned int curr_len = std::get<1>(ms_matches.basic_matches[i]);
       unsigned int curr_col = std::get<2>(ms_matches.basic_matches[i]);
+
+      if (curr_len == 1) {
+
+        char curr_s = get_next_char(this->cols[curr_col].zero_first,
+                                    index_to_run(ms_supp[curr_col], curr_col));
+        auto full_col = this->get_col(curr_col);
+        auto pa = this->get_prefix(curr_col);
+
+        for (unsigned int c = 0; c < full_col.size(); c++) {
+          if (full_col[c] == curr_s)
+            haplos.emplace_back(pa[c]);
+        }
+        // std::cout << curr_col << "\n";
+        ms_matches.haplos.emplace_back(haplos);
+        continue;
+      }
       // initialize boolean and temporary variables for go up/down in
       // search of matching rows
       bool check_down = true;
@@ -1201,77 +1219,102 @@ public:
       std::cout << query.size() << " != " << this->width << "\n";
       throw NotEqualLengthException{};
     }
-    // verbose = true;
-    auto ms_tot = compute_ms_k(query, extend_matches, verbose);
 
-    auto ms = ms_tot.first;
-    auto ms_supp = ms_tot.second;
-    // initialize struct for matches
-    ms_matches ms_matches;
-    // save every match from matching statistics (when we have a "peak" in
-    // ms len vector)
-    int j = this->width - 1;
-    int jp = 0;
-    std::vector<unsigned int> f_len(ms.len.size());
-    for (unsigned int i = 0; i < ms.len.size(); i++) {
-      f_len[i] = std::min(ms.len[i], ms.len_supp[i]);
-    }
-    while (j >= 0) {
-      // std::cout << "at: "<< j << "  " << jp << " " << ms.len[j] <<
-      // std::endl;
-      if (f_len[j] != 0) {
-        jp = j - f_len[j];
-        // std::cout << "new jp: " << jp << "with j: " << j << std::endl;
-        ms_matches.basic_matches.emplace_back(ms.row[j], j - (jp + 1) + 1, j);
-        // std::cout << "add: "<< ms.row[j] << "  " << j - (jp + 1) + 1 << "
-        //"
-        //  << j << std::endl;
-        j = jp;
-      } else {
-        jp = j - 1;
-        j = jp;
+    if (this->k_smem != 1) {
+      // verbose = true;
+      auto ms_tot = compute_ms_k(query, extend_matches, verbose);
+
+      auto ms = ms_tot.first;
+      // std::cout << ms << std::endl;
+      auto ms_supp = ms_tot.second;
+      // initialize struct for matches
+      ms_matches ms_matches;
+      // save every match from matching statistics (when we have a "peak" in
+      // ms len vector)
+      int j = this->width - 1;
+      int jp = 0;
+      std::vector<unsigned int> f_len(ms.len.size());
+      for (unsigned int i = 0; i < ms.len.size(); i++) {
+        f_len[i] = std::min(ms.len[i], ms.len_supp[i]);
       }
-    }
-    // while (j >= 0) {
-    //   // std::cout << "at: "<< j << "  " << jp << " " << ms.len[j] <<
-    //   // std::endl;
-    //   if (ms.len[j] != 0) {
-    //     jp = j - ms.len[j];
-    //     // std::cout << "new jp: " << jp << "with j: " << j << std::endl;
-    //     ms_matches.basic_matches.emplace_back(ms.row[j], j - (jp + 1) + 1,
-    //     j);
-    //     // std::cout << "add: "<< ms.row[j] << "  " << j - (jp + 1) + 1 << "
-    //     //"
-    //     //  << j << std::endl;
-    //     j = jp;
-    //   } else {
-    //     jp = j - 1;
-    //     j = jp;
-    //   }
-    // }
+      while (j >= 0) {
+        // std::cout << "at: "<< j << "  " << jp << " " << ms.len[j] <<
+        // std::endl;
+        if (f_len[j] != 0) {
+          jp = j - f_len[j];
+          // std::cout << "new jp: " << jp << "with j: " << j << std::endl;
+          ms_matches.basic_matches.emplace_back(ms.row[j], j - (jp + 1) + 1, j);
+          // std::cout << "add: "<< ms.row[j] << "  " << j - (jp + 1) + 1 << "
+          //"
+          //  << j << std::endl;
+          j = jp;
+        } else {
+          jp = j - 1;
+          j = jp;
+        }
+      }
 
-    // std::cout << ms_matches << ";";
-    //  for (unsigned int i = 0; i < ms.len.size(); i++) {
-    //    if ((i != ms.len.size() - 1 && ms.len[i] > 0 &&
-    //         ms.len[i] >= ms.len[i + 1]) ||
-    //        (i == ms.len.size() - 1 && ms.len[i] != 0)) {
-    //      ms_matches.basic_matches.emplace_back(ms.row[i], ms.len[i], i);
-    //    }
-    //  }
-    //  std::cout << ms_matches << ";";
-    //  compute every row that are matching if required
-    if (extend_matches) {
+      //  compute every row that are matching if required
+      if (extend_matches) {
+        if (verbose) {
+          std::cout << "\nextending\n";
+        }
+        extend_haplos(ms_matches, ms_supp);
+      }
       if (verbose) {
-        std::cout << "\nextending\n";
+        std::cout << ms << "\n";
+        std::cout << ms_matches << "\n";
       }
-      extend_haplos(ms_matches, ms_supp);
-    }
-    if (verbose) {
-      std::cout << ms << "\n";
-      std::cout << ms_matches << "\n";
-    }
 
-    return ms_matches;
+      return ms_matches;
+    } else {
+      // verbose = true;
+      auto ms_tot = compute_ms(query, extend_matches, verbose);
+
+      auto ms = ms_tot.first;
+      std::cout << ms << std::endl;
+      auto ms_supp = ms_tot.second;
+      // initialize struct for matches
+      ms_matches ms_matches;
+      // save every match from matching statistics (when we have a "peak" in
+      // ms len vector)
+      int j = this->width - 1;
+      int jp = 0;
+      std::vector<unsigned int> f_len(ms.len.size());
+      for (unsigned int i = 0; i < ms.len.size(); i++) {
+        f_len[i] = ms.len[i];
+      }
+      while (j >= 0) {
+        // std::cout << "at: "<< j << "  " << jp << " " << ms.len[j] <<
+        // std::endl;
+        if (f_len[j] != 0) {
+          jp = j - f_len[j];
+          // std::cout << "new jp: " << jp << "with j: " << j << std::endl;
+          ms_matches.basic_matches.emplace_back(ms.row[j], j - (jp + 1) + 1, j);
+          // std::cout << "add: "<< ms.row[j] << "  " << j - (jp + 1) + 1 << "
+          //"
+          //  << j << std::endl;
+          j = jp;
+        } else {
+          jp = j - 1;
+          j = jp;
+        }
+      }
+
+      //  compute every row that are matching if required
+      if (extend_matches) {
+        if (verbose) {
+          std::cout << "\nextending\n";
+        }
+        extend_haplos(ms_matches, ms_supp);
+      }
+      if (verbose) {
+        std::cout << ms << "\n";
+        std::cout << ms_matches << "\n";
+      }
+
+      return ms_matches;
+    }
   }
 
   /**
@@ -1384,14 +1427,15 @@ public:
     char symbol = get_next_char(this->cols[0].zero_first, curr_run);
     unsigned int s_index = this->cols[0].i_e_k[curr_run];
     bool reset = true;
-    // auto s_index = lf(0, curr_index, query[0]) -
-    // this->cols[0].i_e_k[curr_run];
-    //  auto s_index = this->cols[0].p[this->cols[0].sample_end.size() - 1];
-    //   iterate over every query's symbol/column index
+    // verbose = true;
+    //  auto s_index = lf(0, curr_index, query[0]) -
+    //  this->cols[0].i_e_k[curr_run];
+    //   auto s_index = this->cols[0].p[this->cols[0].sample_end.size() - 1];
+    //    iterate over every query's symbol/column index
     for (unsigned int i = 0; i < query.size(); i++) {
       // std::cout << "processed " << i << "\r";
       if (verbose) {
-        std::cout << "\nat " << i << ": "
+        std::cout << "\nat " << i << " with " << query[i] << " : "
                   << " threshold  " << this->cols[i].t[curr_run] << "\n";
         std::cout << "curr index " << curr_index << " curr run " << curr_run
                   << " curr pos " << curr_pos << " symb " << symbol << "\n";
@@ -1527,7 +1571,7 @@ public:
           auto thr = this->cols[i].t[curr_run];
 
           // complete mismatch
-          if (this->cols[i].sample_beg.size() == 1) {
+          if (this->cols[i].sample_beg.size() == 1 || query[i] == '2') {
             if (verbose) {
               std::cout << "complete mismatch\n";
             }
@@ -1923,7 +1967,7 @@ public:
         std::cout << "\n";
       }
     }
-
+    // exit(0);
     return std::make_pair(ms, ms_supp);
   }
 
@@ -2180,7 +2224,10 @@ public:
 
     for (size_t i = 0; i < input.size(); ++i) {
       for (size_t j = i + 1; j < input.size(); ++j) {
-        result.emplace_back(input[i], input[j]);
+        if (input[i] < input[j])
+          result.emplace_back(input[i], input[j]);
+        else
+          result.emplace_back(input[j], input[i]);
       }
     }
 
@@ -2198,7 +2245,7 @@ public:
               std::tuple<std::vector<sdsl::sd_vector<>>,
                          std::vector<std::string>, std::vector<unsigned int>>
                   ref_data,
-              bool v = false) {
+              bool unsafe, bool v = false) {
     std::ofstream out_match(out);
     std::string new_row;
     std::string line;
@@ -2273,8 +2320,11 @@ public:
 
     std::vector<ms_matches> matches_vec(n_queries);
     std::vector<std::vector<unsigned int>> phased_haplos;
+    std::vector<std::vector<bool>> is_phases_full;
+    // bool unsafe = false;
     for (unsigned int i = 0; i < n_queries; i++) {
-
+      // auto x = this->match_thr(queries[i]);
+      // std::cout << x;
       matches_vec[i] = this->left_mpsc(queries[i], true);
       // std::cout << matches_vec[i];
       unsigned int j = matches_vec[i].basic_matches.size() - 1;
@@ -2316,6 +2366,8 @@ public:
       // - 2]); mat = get_sub_matrix(rows, l_col, r_col); comp =
       // get_comp(mat); l_rows = red_pairs(comp);
       //
+      std::vector<bool> is_safety_phased(this->width, true);
+      std::vector<std::pair<unsigned int, unsigned int>> unsafe_pos;
 
       l_rows = matches_vec[i].haplos[j];
       if (len_pref != 0) {
@@ -2323,15 +2375,42 @@ public:
         std::iota(std::begin(v), std::end(v), 0);
         mat = get_sub_matrix(v, 0, len_pref - 1);
         comp = get_comp(mat, v);
+
         l_rows = red_pairs(comp);
+        unsafe_pos.push_back({0, len_pref - 1});
       }
       // TODO aggiungere switch tra mpsc consecutivi senxa 2 in mezzo
       while (j >= 1) {
+
         r_rows = matches_vec[i].haplos[j - 1];
         rows = intersection(r_rows, l_rows);
         l_col = std::get<2>(matches_vec[i].basic_matches[j]) + 1;
         r_col = std::get<2>(matches_vec[i].basic_matches[j - 1]) -
                 std::get<1>(matches_vec[i].basic_matches[j - 1]);
+        // if (j >= matches_vec[i].basic_matches.size() - 100) {
+        //   for (auto c : comp)
+        //     std::cout << c.first << "," << c.second << " ";
+        //   std::cout << std::endl;
+        //   std::cout << j << " " << l_col << " " << r_col << std::endl;
+        //   for (auto c : l_rows)
+        //     std::cout << c << " ";
+        //   std::cout << std::endl;
+        //   for (auto c : r_rows)
+        //     std::cout << c << " ";
+        //   std::cout << std::endl;
+        //   for (auto c : rows)
+        //     std::cout << c << " ";
+        //   std::cout << std::endl;
+        // }
+        if (r_rows.size() == 1) {
+          unsafe_pos.push_back({l_col, r_col});
+          comp.clear();
+          j -= 2;
+          if (j <= 0)
+            break;
+          l_rows = matches_vec[i].haplos[j];
+          continue;
+        }
         if ((l_col - 1) == r_col) {
           is_recomb = true;
           if (rows.size() >= 2) {
@@ -2373,13 +2452,19 @@ public:
           // TODO se mat vuota intersezione tra pairs e nuove righe (dei pairs
           // tengo solo quelle con righe negli haplosm di MPSC successiva)
           comp_supp = get_comp(mat, rows);
-          if (j == matches_vec[i].basic_matches.size() - 1 && len_pref == 0) {
+
+          auto back = comp;
+          if ((j == matches_vec[i].basic_matches.size() - 1 && len_pref == 0) ||
+              comp.empty()) {
             l_rows = red_pairs(comp_supp);
             comp = comp_supp;
           } else {
             comp = intersection_pairs(comp, comp_supp);
             l_rows = red_pairs(comp);
           }
+          // for (auto c : comp)
+          //   std::cout << c.first << "," << c.second << " ";
+          // std::cout << j << std::endl;
           if (!comp.empty()) {
             if (recomb.empty()) {
               recomb.push_back(
@@ -2390,6 +2475,11 @@ public:
                   comp, std::get<2>(matches_vec[i].basic_matches[j - 1])};
             }
           } else {
+            // if (!back.empty() && std::get<2>(matches_vec[i].basic_matches[j])
+            // <
+            //                          recomb[recomb.size() - 1].second)
+            //   recomb.push_back(
+            //       {back, std::get<2>(matches_vec[i].basic_matches[j])});
             is_recomb = true;
             std::vector<unsigned int> v(this->height);
             std::iota(std::begin(v), std::end(v), 0);
@@ -2401,11 +2491,22 @@ public:
             //   l_rows = matches_vec[i].haplos[j];
             //   comp = generate_pairs(l_rows);
             // }
-            if (!comp.empty())
-              recomb.push_back(
-                  {comp, std::get<2>(matches_vec[i].basic_matches[j - 1])});
-            else
+            if (!unsafe) {
+              if (!comp.empty())
+                recomb.push_back(
+                    {comp, std::get<2>(matches_vec[i].basic_matches[j - 1])});
+              else
+                l_rows = matches_vec[i].haplos[j];
+            }
+            if (unsafe) {
+              unsafe_pos.push_back({l_col, r_col});
+              comp.clear();
               l_rows = matches_vec[i].haplos[j];
+              comp = generate_pairs(l_rows);
+              if (!comp.empty())
+                recomb.push_back(
+                    {comp, std::get<2>(matches_vec[i].basic_matches[j - 1])});
+            }
           }
         }
         j--;
@@ -2414,8 +2515,22 @@ public:
       if (len_suff != 0) {
         mat = get_sub_matrix(l_rows, this->width - len_suff, this->width - 1);
         comp_supp = get_comp(mat, l_rows);
-        comp = intersection_pairs(comp, comp_supp);
-        recomb.push_back({comp, this->width});
+        if (!unsafe) {
+          comp = intersection_pairs(comp, comp_supp);
+          if (!comp.empty())
+            recomb.push_back({comp, this->width - 1});
+          else {
+            // comp = generate_pairs(l_rows);
+            std::vector<unsigned int> v(this->height);
+            std::iota(std::begin(v), std::end(v), 0);
+            mat = get_sub_matrix(v, this->width - len_suff, this->width - 1);
+            comp = get_comp(mat, v);
+            if (!comp.empty())
+              recomb.push_back({comp, this->width - 1});
+          }
+        }
+        if (unsafe)
+          unsafe_pos.push_back({this->width - len_suff + 1, this->width - 1});
       }
       // std::cout << "computed haps for query: " << i
       //           << "having recomb: " << is_recomb << "\n";
@@ -2423,21 +2538,37 @@ public:
       //   std::cout << "Is recomb" << i << std::endl;
       // else
       //   std::cout << "Is not recomb" << i << std::endl;
+      if (unsafe) {
+        for (auto upos : unsafe_pos) {
+          for (unsigned int u = upos.first; u <= upos.second; u++)
+            is_safety_phased[u] = false;
+        }
+      }
+      // is_phases_full.push_back(is_safety_phased);
+      // std::vector<std::pair<std::vector<std::pair<unsigned int, unsigned
+      // int>>,
+      //                    unsigned int>>
+      // recomb_f;
+      // for (auto r_comp : recomb) {
 
-      std::vector<std::pair<std::vector<std::pair<unsigned int, unsigned int>>,
-                            unsigned int>>
-          recomb_f;
+      //   std::cout << "[ ";
+      //   for (auto c : r_comp.first) {
+      //     std::cout << "(" << c.first << ", " << c.second << ") ";
+      //   }
+      //   std::cout << ", " << r_comp.second << "]; \n";
+      // }
+      std::cout << std::endl;
+      optimize_recomb(recomb);
       std::vector<unsigned int> target_pos;
       for (auto d : data_t)
         target_pos.push_back(std::stoi(d[1]) - 1);
       // std::cout << comp.size() << " " << recomb.size() << "\n";
-      //  for (auto c : comp) {
-      //    std::cout << "(" << c.first << ", " << c.second << ")\n";
-      //  }
-      //  std::cout << std::endl;
-      //
-      //  for (auto r_comp : recomb) {
+      // for (auto c : comp) {
+      //   std::cout << "(" << c.first << ", " << c.second << ")\n";
+      // }
+      // std::cout << std::endl;
 
+      // for (auto r_comp : recomb) {
       //   std::cout << "[ ";
       //   for (auto c : r_comp.first) {
       //     std::cout << "(" << c.first << ", " << c.second << ") ";
@@ -2449,13 +2580,13 @@ public:
 
       // if(is_recomb && recomb.size() > 1) {
       //      std::cout << "@" << i << std::endl;
-      /*for (auto r_comp : recomb) {
-         std::cout << "[ ";
-         for (auto c : r_comp.first) {
-           std::cout << "(" << c.first << ", " << c.second << ") ";
-         }
-         std::cout << ", \n" << r_comp.second << "]; \n";
-       }*/
+      // for (auto r_comp : recomb) {
+      //   std::cout << "[ ";
+      //   for (auto c : r_comp.first) {
+      //     std::cout << "(" << c.first << ", " << c.second << ") ";
+      //   }
+      //   std::cout << ", \n" << r_comp.second << "]; \n";
+      // }
 
       /* auto f = recomb[0];
        for(unsigned int ii = 1; ii < recomb.size(); ii++) {
@@ -2494,10 +2625,13 @@ public:
         std::vector<unsigned int> samples_ref2(this->width, comp[0].second);
         auto map_pos1 = get_ref_pos(samples_ref1, target_pos, ref_sites);
         auto map_pos2 = get_ref_pos(samples_ref2, target_pos, ref_sites);
+
         std::vector<unsigned int> tmp1 = getfromref(ref_panel, map_pos1);
         std::vector<unsigned int> tmp2 = getfromref(ref_panel, map_pos2);
         phased_haplos.push_back(tmp1);
         phased_haplos.push_back(tmp2);
+        std::vector<bool> t(data.size(), true);
+        is_phases_full.push_back(t);
       } else {
         // TODO check existence of recomb
         // std::cout << "@" << i << std::endl;
@@ -2506,29 +2640,41 @@ public:
         unsigned int start = 0;
         std::vector<unsigned int> samples_ref1(this->width);
         std::vector<unsigned int> samples_ref2(this->width);
+        // std::cout << recomb.size() << std::endl;
         for (auto r_comp : recomb) {
+          // std::cout << start << " " << r_comp.second << " " << this->width
+          //           << std::endl;
           if (r_comp.second == this->width)
             r_comp.second--;
-          // int hap1 = r_comp.first[0].first % 2 == 0 ? 0 : 1;
+          if (start > r_comp.second)
+            break;
+          // std::cout << start << " " << r_comp.second << " " << this->width
+          //           << " " << r_comp.first.size() << std::endl;
+          //  int hap1 = r_comp.first[0].first % 2 == 0 ? 0 : 1;
 
-          // auto h1 = gh(ref, samples[int(std::floor(r_comp.first[0].first /
-          // 2))],
+          // auto h1 = gh(ref,
+          // samples[int(std::floor(r_comp.first[0].first / 2))],
           //              hap1, ps, fpr2, hdrr2);
           // int hap2 = r_comp.first[0].second % 2 == 0 ? 0 : 1;
           // auto h2 =
-          //     gh(ref, samples[int(std::floor(r_comp.first[0].second / 2))],
+          //     gh(ref, samples[int(std::floor(r_comp.first[0].second /
+          //     2))],
           //        hap2, ps, fpr2, hdrr2);
 
           // auto h1 = slice_sd_vector(this->panel[r_comp.first[0].first],
           // start,
           //                           r_comp.second);
-          // auto h2 = slice_sd_vector(this->panel[r_comp.first[0].second],
-          // start,
+          // auto h2 =
+          // slice_sd_vector(this->panel[r_comp.first[0].second], start,
           //                           r_comp.second);
           // //
           // tmp1.insert(tmp1.end(), h1.begin(), h1.end());
           // tmp2.insert(tmp2.end(), h2.begin(), h2.end());
           for (int ii = start; ii <= r_comp.second; ii++) {
+            // std::cout << r_comp.first[0].first << std::endl;
+            // std::cout << r_comp.first[0].second << std::endl;
+
+            // std::cout << "-------" << std::endl;
             samples_ref1[ii] = r_comp.first[0].first;
             // samples[int(std::floor(r_comp.first[0].first / 2))];
             samples_ref2[ii] = r_comp.first[0].second;
@@ -2538,23 +2684,38 @@ public:
             //  samples_ref2[ii] =
             //      samples[int(std::floor(r_comp.first[0].second / 2))];
           }
-
+          // std::cout << "------aaaaaaaa-" << std::endl;
           start = r_comp.second + 1;
           // std::cout << "[ ";
-          //  for (auto c : r_comp.first) {
-          //    std::cout << "(" << c.first << ", " << c.second << ") ";
-          //  }
-          // std::cout << ", " << r_comp.second << "]; ";
+          // for (auto c : r_comp.first) {
+          //   std::cout << "(" << c.first << ", " << c.second << ") ";
+          // }
+          // std::cout << ", " << r_comp.second << "];\n";
         }
-        // for (auto x : ref_sites) {
-        //   std::cout << x << "\n";
-        // }
+        // std::cout << "------nnbbbbbbbba-" << std::endl;
+        // std::cout << samples_ref1.size() << " " << target_pos.size() << " "
+        //          << ref_sites.size() << "\n";
+        // for (auto x : samples_ref1) {
+        //  std::cout << x << " ";
+        //}
+        // std::cout << std::endl;
         auto map_pos1 = get_ref_pos(samples_ref1, target_pos, ref_sites);
+        // for (auto m : map_pos1) {
+        //   std::cout << std::get<0>(m) << " " << std::get<1>(m) << " "
+        //             << std::get<1>(m) << "\n";
+        // }
         auto map_pos2 = get_ref_pos(samples_ref2, target_pos, ref_sites);
         tmp1 = getfromref(ref_panel, map_pos1);
+        // std::cout << tmp1.size() << "\n";
         tmp2 = getfromref(ref_panel, map_pos2);
         phased_haplos.push_back(tmp1);
         phased_haplos.push_back(tmp2);
+        // std::cout << is_safety_phased.size() << " " << target_pos.size() << "
+        // "
+        //           << ref_sites.size() << "\n";
+        is_phases_full.push_back(
+            expand_phased(is_safety_phased, target_pos, ref_sites));
+
         // for (auto x : ref_panel) {
         //   std::cout << x << "\n";
         // }
@@ -2577,9 +2738,31 @@ public:
     //   for (auto hhh : hh) {
     //     std::cout << "(" << hhh.first << "," << hhh.second << ") ";
     //   }
-    //   std::cout << std::endl;
+    //   std::
+    //    cout << std::endl;
     // }
-
+    // unsafe = true;
+    // std::cout << is_phases_full.size() << " " << hs[0].size() << " \n";
+    std::vector<bool> ph(data.size());
+    if (unsafe) {
+      if (is_phases_full.size() == 1) {
+        ph = is_phases_full[0];
+      } else {
+        for (const auto &v : is_phases_full) {
+          for (size_t i = 0; i < is_phases_full[0].size(); ++i) {
+            ph[i] = ph[i] && v[i];
+          }
+        }
+      }
+    } else {
+      for (unsigned int u = 0; u < data.size(); u++) {
+        ph[u] = true;
+      }
+    }
+    // std::cout << ph.size() << " " << hs[0].size() << " \n";
+    //   for (unsigned int u = 0; u < this->width; u++) {
+    //     std::cout << ph[u];
+    //   }
     htsFile *fpo = bcf_open(out, "wb");
 
     bcf_hdr_t *hdro = bcf_hdr_init("w");
@@ -2602,6 +2785,10 @@ public:
     bcf_hdr_append(hdro, "##fileformat=VCFv4.2");
     bcf_hdr_append(hdro, header.c_str());
     bcf_hdr_append(
+        hdro,
+        "##FORMAT=<ID=IMP,Number=0,Type=Flag,Description=\"Imputed marker\">");
+
+    bcf_hdr_append(
         hdro, "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">");
 
     for (auto sam : samples_t) {
@@ -2614,28 +2801,53 @@ public:
       fprintf(stderr, "Header writing errorr\n");
       return;
     }
-
-    // Itera sui siti e scrivi le varianti
+    int cl = 0;
     for (int i = 0; i < data.size(); i++) {
       // std::cout << i << "\n";
       bcf1_t *reco = bcf_init();
       reco->rid = bcf_hdr_name2id(hdro, data[i][0].c_str());
       // std::cout << reco->rid << " " << data[i][0].c_str() << "\n";
-      reco->pos = std::stoi(data[i][1]);
+      reco->pos = std::stoi(data[i][1]) - 1;
+
+      bcf_update_id(hdro, reco, data[i][2].c_str());
       // std::cout << reco->pos << "\n";
       auto al = data[i][3] + ',' + data[i][4];
       // std::cout << al << "\n";
       bcf_update_alleles_str(hdro, reco, al.c_str());
 
       int32_t gt_arr[samples_t.size() * 2];
+      // if (ph[i]) {
+      //   // std::cout << "here\n";
+      //   for (int j = 0; j < samples_t.size(); j++) {
+      //     // std::cout << "writing: " << hs[j][i].first << " " <<
+      //     // hs[j][i].second
+      //     //           << "\n";
+      //     gt_arr[j * 2] = bcf_gt_phased(hs[j][i].first);
+      //     gt_arr[j * 2 + 1] = bcf_gt_phased(hs[j][i].second);
+      //   }
+      // } else {
+      //   for (int j = 0; j < samples_t.size(); j++) {
+      //     // std::cout << "writing: " << 2 << " at " << i << "\n";
+      //     gt_arr[j * 2] = bcf_gt_unphased(0);
+      //     gt_arr[j * 2 + 1] = bcf_gt_unphased(1);
+      //   }
+      // }
+      //
+      //
+      if (ph[i]) {
+        int32_t f = 1;
+        bcf_update_format_int32(hdro, reco, "IMP", &f, 0);
+      }
+      if (!ph[i]) {
+        cl++;
+      }
+      // else {
+      //   bcf_update_format_int32(hdro, reco, "IMP", 1, 1);
+      // }
       for (int j = 0; j < samples_t.size(); j++) {
-        // std::cout << "writing: " << hs[j][i].first << " " <<
-        // hs[j][i].second
-        //           << "\n";
         gt_arr[j * 2] = bcf_gt_phased(hs[j][i].first);
         gt_arr[j * 2 + 1] = bcf_gt_phased(hs[j][i].second);
       }
-
       bcf_update_genotypes(hdro, reco, gt_arr, samples_t.size() * 2);
 
       if (bcf_write(fpo, hdro, reco) < 0) {
@@ -2647,6 +2859,34 @@ public:
     }
     bcf_hdr_destroy(hdro);
     bcf_close(fpo);
+    std::cout << "Low prob over target " << cl << std::endl;
+  }
+
+  void optimize_recomb(
+      std::vector<std::pair<std::vector<std::pair<unsigned int, unsigned int>>,
+                            unsigned int>> &recomb) {
+    std::map<std::pair<int, int>, int> counts;
+    std::set<std::pair<int, int>> used;
+
+    for (const auto &r : recomb) {
+      for (const auto &p : r.first) {
+        counts[p]++;
+      }
+    }
+
+    for (size_t i = 0; i < recomb.size(); i++) {
+      std::pair<int, int> best = recomb[i].first[0];
+      int m = 0;
+
+      for (const auto &p : recomb[i].first) {
+        if (counts[p] > m || (counts[p] == m && used.count(p))) {
+          best = p;
+          m = counts[p];
+        }
+      }
+      recomb[i].first = {best};
+      used.insert(best);
+    }
   }
 
   std::vector<unsigned int> getfromref(
@@ -2669,6 +2909,62 @@ public:
     }
 
     return result;
+  }
+
+  // std::vector<std::tuple<bool, size_t, size_t>>
+  // expand_phased(const std::vector<bool> &phased,
+  //               const std::vector<unsigned int> &target_pos,
+  //               const std::vector<unsigned int> &ref_pos) {
+
+  //   // std::vector<unsigned int> res(ref_pos.size());
+  //   // size_t i = 0;
+  //   // unsigned int lastValue = 0;
+
+  //   // for (size_t j = 0; j < ref_pos.size(); ++j) {
+  //   //   if (i < target_pos.size() && ref_pos[j] == target_pos[i]) {
+  //   //     lastValue = samples[i];
+  //   //     ++i;
+  //   //   }
+  //   //   res[j] = lastValue;
+  //   // }
+
+  //   // return res;
+  //   //
+  //   std::vector<std::tuple<bool, size_t, size_t>> intervals;
+  //   size_t i = 0;
+  //   size_t start_idx = 0;
+  //   bool lastValue = phased[0];
+
+  //   for (size_t j = 0; j < ref_pos.size(); ++j) {
+  //     if (i + 1 < target_pos.size() && ref_pos[j] >= target_pos[i + 1]) {
+  //       intervals.emplace_back(lastValue, start_idx, j);
+  //       start_idx = j + 1;
+  //       lastValue = phased[++i];
+  //     }
+  //   }
+
+  //   intervals.emplace_back(lastValue, start_idx, ref_pos.size() - 1);
+
+  //   return compactIntervals(intervals);
+  // }
+  //
+  std::vector<bool> expand_phased(const std::vector<bool> &phased,
+                                  const std::vector<unsigned int> &target_pos,
+                                  const std::vector<unsigned int> &ref_pos) {
+
+    std::vector<bool> res(ref_pos.size(), true);
+    size_t i = 0;
+    size_t start_idx = 0;
+    bool lastValue = phased[0];
+
+    for (size_t j = 0; j < ref_pos.size(); ++j) {
+      if (i + 1 < target_pos.size() && ref_pos[j] == target_pos[i]) {
+        res[j] = phased[i];
+        i++;
+      }
+    }
+
+    return res;
   }
 
   std::vector<std::tuple<unsigned int, size_t, size_t>>
@@ -2702,8 +2998,8 @@ public:
         lastValue = samples[++i];
       }
     }
-
-    intervals.emplace_back(lastValue, start_idx, ref_pos.size() - 1);
+    if (start_idx < ref_pos.size())
+      intervals.emplace_back(lastValue, start_idx, ref_pos.size() - 1);
 
     return compactIntervals(intervals);
   }
@@ -3159,7 +3455,10 @@ public:
       // #pragma omp parallel for
       for (size_t j = i + 1; j < mat.size(); ++j) {
         if (check_comp(mat[i], mat[j])) {
-          result.emplace_back(r[i], r[j]);
+          if (r[i] < r[j])
+            result.emplace_back(r[i], r[j]);
+          else
+            result.emplace_back(r[j], r[i]);
         }
       }
     }
