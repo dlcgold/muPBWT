@@ -726,21 +726,22 @@ private:
       unsigned int curr_len = std::get<1>(ms_matches.basic_matches[i]);
       unsigned int curr_col = std::get<2>(ms_matches.basic_matches[i]);
 
-      if (curr_len == 1) {
+      // if (curr_len == 1) {
 
-        char curr_s = get_next_char(this->cols[curr_col].zero_first,
-                                    index_to_run(ms_supp[curr_col], curr_col));
-        auto full_col = this->get_col(curr_col);
-        auto pa = this->get_prefix(curr_col);
+      //   char curr_s = get_next_char(this->cols[curr_col].zero_first,
+      //                               index_to_run(ms_supp[curr_col],
+      //                               curr_col));
+      //   auto full_col = this->get_col(curr_col);
+      //   auto pa = this->get_prefix(curr_col);
 
-        for (unsigned int c = 0; c < full_col.size(); c++) {
-          if (full_col[c] == curr_s)
-            haplos.emplace_back(pa[c]);
-        }
-        // std::cout << curr_col << "\n";
-        ms_matches.haplos.emplace_back(haplos);
-        continue;
-      }
+      //   for (unsigned int c = 0; c < full_col.size(); c++) {
+      //     if (full_col[c] == curr_s)
+      //       haplos.emplace_back(pa[c]);
+      //   }
+      //   // std::cout << curr_col << "\n";
+      //   ms_matches.haplos.emplace_back(haplos);
+      //   continue;
+      // }
       // initialize boolean and temporary variables for go up/down in
       // search of matching rows
       bool check_down = true;
@@ -2253,6 +2254,7 @@ public:
     auto ref_panel = std::get<0>(ref_data);
     auto ref_samples = std::get<1>(ref_data);
     auto ref_sites = std::get<2>(ref_data);
+    std::map<unsigned int, unsigned int> mappos;
     // while (getline(input_matrix, line) && !line.empty()) {
     //   std::istringstream is_col(line);
     //   is_col >> new_row;
@@ -2268,6 +2270,7 @@ public:
     bcf1_t *rec = bcf_init();
 
     unsigned int count = 0;
+    unsigned int qi = 0;
     std::string last_col;
     std::string last_column;
     std::string new_column;
@@ -2276,6 +2279,8 @@ public:
       bcf_unpack(rec, BCF_UN_ALL);
       // if (auto search = ps.find(rec->pos); search == ps.end())
       //   continue;
+      mappos[rec->pos] = qi;
+      qi++;
       new_column = "";
       int32_t *gt_arr = NULL, ngt_arr = 0;
       int i, j, ngt, nsmpl = bcf_hdr_nsamples(hdr);
@@ -2291,13 +2296,16 @@ public:
             exit(-1);
 
           int allele_index = bcf_gt_allele(ptr[j]);
+          // std::cout << allele_index << "\n";
           if (j == 0) {
             new_column += std::to_string(allele_index);
           } else if (j == 1 &&
                      new_column[new_column.size() - 1] - '0' != allele_index) {
             new_column[new_column.size() - 1] = '2';
           }
+          // std::cout << "n: " << new_column[new_column.size() - 1] << "\n";
         }
+        // std::cout << "\n-----------\n";
       }
 
       queries_panel.push_back(new_column);
@@ -2321,10 +2329,14 @@ public:
     std::vector<ms_matches> matches_vec(n_queries);
     std::vector<std::vector<unsigned int>> phased_haplos;
     std::vector<std::vector<bool>> is_phases_full;
+    std::vector<std::pair<unsigned int, unsigned int>> bests;
     // bool unsafe = false;
     for (unsigned int i = 0; i < n_queries; i++) {
       // auto x = this->match_thr(queries[i]);
       // std::cout << x;
+      // for (auto aa : queries[i])
+      //   std::cout << aa << " ";
+      // std::cout << queries[i][queries[i].size() - 1] << " ";
       matches_vec[i] = this->left_mpsc(queries[i], true);
       // std::cout << matches_vec[i];
       unsigned int j = matches_vec[i].basic_matches.size() - 1;
@@ -2335,6 +2347,7 @@ public:
       std::vector<unsigned int> rows;
       std::vector<std::vector<unsigned int>> mat;
       std::vector<std::pair<unsigned int, unsigned int>> comp;
+      std::vector<std::pair<unsigned int, unsigned int>> comp_back;
       std::vector<std::pair<unsigned int, unsigned int>> comp_supp;
       std::vector<std::pair<std::vector<std::pair<unsigned int, unsigned int>>,
                             unsigned int>>
@@ -2378,16 +2391,18 @@ public:
 
         l_rows = red_pairs(comp);
         unsafe_pos.push_back({0, len_pref - 1});
+        l_rows = matches_vec[i].haplos[j];
+        comp.clear();
       }
       // TODO aggiungere switch tra mpsc consecutivi senxa 2 in mezzo
       while (j >= 1) {
-
         r_rows = matches_vec[i].haplos[j - 1];
         rows = intersection(r_rows, l_rows);
         l_col = std::get<2>(matches_vec[i].basic_matches[j]) + 1;
         r_col = std::get<2>(matches_vec[i].basic_matches[j - 1]) -
                 std::get<1>(matches_vec[i].basic_matches[j - 1]);
-        // if (j >= matches_vec[i].basic_matches.size() - 100) {
+
+        // if (j >= matches_vec[i].basic_matches.size() - 1000) {
         //   for (auto c : comp)
         //     std::cout << c.first << "," << c.second << " ";
         //   std::cout << std::endl;
@@ -2400,117 +2415,313 @@ public:
         //   std::cout << std::endl;
         //   for (auto c : rows)
         //     std::cout << c << " ";
-        //   std::cout << std::endl;
+        //   std::cout << "\n---------------" << std::endl;
         // }
-        if (r_rows.size() == 1) {
-          unsafe_pos.push_back({l_col, r_col});
-          comp.clear();
-          j -= 2;
-          if (j <= 0)
-            break;
-          l_rows = matches_vec[i].haplos[j];
-          continue;
-        }
         if ((l_col - 1) == r_col) {
           is_recomb = true;
           if (rows.size() >= 2) {
-            comp = filter_comp(comp, r_rows);
+            comp = filter_comp(comp, rows);
             l_rows = red_pairs(comp);
-            if (comp.empty()) {
-              l_rows = matches_vec[i].haplos[j];
-              comp = generate_pairs(l_rows);
-            }
-            if (!comp.empty()) {
-              if (recomb.empty()) {
-                recomb.push_back(
-                    {comp, std::get<2>(matches_vec[i].basic_matches[j - 1])});
-              } else {
-                recomb[recomb.size() - 1] = {
-                    comp, std::get<2>(matches_vec[i].basic_matches[j - 1])};
-              }
-            } else {
-              l_rows = matches_vec[i].haplos[j];
-            }
+            if (j > 0)
+              recomb.push_back(
+                  {comp, std::get<2>(matches_vec[i].basic_matches[j - 1])});
+            comp_back = comp;
           } else {
-            if (l_rows.size() < 2)
-              l_rows = matches_vec[i].haplos[j];
-            comp = generate_pairs(l_rows);
             if (!comp.empty()) {
-              if (recomb.empty()) {
+              if (!recomb.empty() &&
+                  recomb[recomb.size() - 1].second !=
+                      std::get<2>(matches_vec[i].basic_matches[j]))
                 recomb.push_back(
-                    {comp, std::get<2>(matches_vec[i].basic_matches[j - 1])});
-              } else {
-                recomb[recomb.size() - 1] = {
-                    comp, std::get<2>(matches_vec[i].basic_matches[j - 1])};
-              }
-            } else {
-              l_rows = matches_vec[i].haplos[j];
+                    {comp_back, std::get<2>(matches_vec[i].basic_matches[j])});
+            }
+            if (j > 0) {
+              l_rows = matches_vec[i].haplos[j - 1];
+              comp = generate_pairs(l_rows);
+              comp_back = comp;
             }
           }
         } else {
-          mat = get_sub_matrix(rows, l_col, r_col);
-          // TODO se mat vuota intersezione tra pairs e nuove righe (dei pairs
-          // tengo solo quelle con righe negli haplosm di MPSC successiva)
-          comp_supp = get_comp(mat, rows);
 
-          auto back = comp;
-          if ((j == matches_vec[i].basic_matches.size() - 1 && len_pref == 0) ||
-              comp.empty()) {
-            l_rows = red_pairs(comp_supp);
-            comp = comp_supp;
-          } else {
-            comp = intersection_pairs(comp, comp_supp);
-            l_rows = red_pairs(comp);
-          }
-          // for (auto c : comp)
-          //   std::cout << c.first << "," << c.second << " ";
-          // std::cout << j << std::endl;
-          if (!comp.empty()) {
-            if (recomb.empty()) {
-              recomb.push_back(
-                  {comp, std::get<2>(matches_vec[i].basic_matches[j - 1])});
-
+          if (rows.size() >= 2) {
+            mat = get_sub_matrix(rows, l_col, r_col);
+            comp_supp = get_comp(mat, rows);
+            if ((j == matches_vec[i].basic_matches.size() - 1 &&
+                 len_pref == 0)) {
+              comp = comp_supp;
+              l_rows = red_pairs(comp);
             } else {
-              recomb[recomb.size() - 1] = {
-                  comp, std::get<2>(matches_vec[i].basic_matches[j - 1])};
+              comp = intersection_pairs(comp, comp_supp);
+              l_rows = red_pairs(comp);
+            }
+            if (!comp.empty()) {
+              if (j > 0) {
+                recomb.push_back(
+                    {comp, std::get<2>(matches_vec[i].basic_matches[j - 1])});
+                comp_back = comp;
+              }
+            } else {
+              is_recomb = true;
+              if (!recomb.empty() &&
+                  recomb[recomb.size() - 1].second !=
+                      std::get<2>(matches_vec[i].basic_matches[j]))
+                recomb.push_back(
+                    {comp_back, std::get<2>(matches_vec[i].basic_matches[j])});
+              std::vector<unsigned int> v(this->height);
+              std::iota(std::begin(v), std::end(v), 0);
+              mat = get_sub_matrix(v, l_col, r_col);
+              comp = get_comp(mat, v);
+              l_rows = red_pairs(comp);
+              if (!unsafe) {
+                if (!comp.empty() &&
+                    (recomb.empty() ||
+                     recomb[recomb.size() - 1].second != r_col)) {
+                  recomb.push_back({comp, r_col});
+                }
+              } else {
+                unsafe_pos.push_back({l_col, r_col});
+              }
+              comp.clear();
+              if (j > 0) {
+                l_rows = matches_vec[i].haplos[j - 1];
+                comp = generate_pairs(l_rows);
+                comp_back = comp;
+              }
             }
           } else {
-            // if (!back.empty() && std::get<2>(matches_vec[i].basic_matches[j])
-            // <
-            //                          recomb[recomb.size() - 1].second)
-            //   recomb.push_back(
-            //       {back, std::get<2>(matches_vec[i].basic_matches[j])});
             is_recomb = true;
+            if (!recomb.empty() &&
+                recomb[recomb.size() - 1].second !=
+                    std::get<2>(matches_vec[i].basic_matches[j]))
+              recomb.push_back(
+                  {comp_back, std::get<2>(matches_vec[i].basic_matches[j])});
             std::vector<unsigned int> v(this->height);
             std::iota(std::begin(v), std::end(v), 0);
             mat = get_sub_matrix(v, l_col, r_col);
             comp = get_comp(mat, v);
             l_rows = red_pairs(comp);
-            // if (comp.empty()) {
-
-            //   l_rows = matches_vec[i].haplos[j];
-            //   comp = generate_pairs(l_rows);
-            // }
             if (!unsafe) {
-              if (!comp.empty())
-                recomb.push_back(
-                    {comp, std::get<2>(matches_vec[i].basic_matches[j - 1])});
-              else
-                l_rows = matches_vec[i].haplos[j];
-            }
-            if (unsafe) {
+              if (!comp.empty() &&
+                  (recomb.empty() ||
+                   recomb[recomb.size() - 1].second != r_col)) {
+                recomb.push_back({comp, r_col});
+              }
+            } else {
               unsafe_pos.push_back({l_col, r_col});
-              comp.clear();
-              l_rows = matches_vec[i].haplos[j];
+            }
+            comp.clear();
+            if (j > 0) {
+              l_rows = matches_vec[i].haplos[j - 1];
               comp = generate_pairs(l_rows);
-              if (!comp.empty())
-                recomb.push_back(
-                    {comp, std::get<2>(matches_vec[i].basic_matches[j - 1])});
+              comp_back = comp;
             }
           }
         }
         j--;
       }
+
+      // // std::cout << j << "\n";
+      // r_rows = matches_vec[i].haplos[j - 1];
+      // rows = intersection(r_rows, l_rows);
+      // l_col = std::get<2>(matches_vec[i].basic_matches[j]) + 1;
+      // r_col = std::get<2>(matches_vec[i].basic_matches[j - 1]) -
+      //         std::get<1>(matches_vec[i].basic_matches[j - 1]);
+      // // if (j >= matches_vec[i].basic_matches.size() - 1000) {
+      // // if (j <= 20) {
+      // //   for (auto c : comp)
+      // //     std::cout << c.first << "," << c.second << " ";
+      // //   std::cout << std::endl;
+      // //   std::cout << j << " " << l_col << " " << r_col << std::endl;
+      // //   for (auto c : l_rows)
+      // //     std::cout << c << " ";
+      // //   std::cout << std::endl;
+      // //   for (auto c : r_rows)
+      // //     std::cout << c << " ";
+      // //   std::cout << std::endl;
+      // //   for (auto c : rows)
+      // //     std::cout << c << " ";
+      // //   std::cout << "\n---------------" << std::endl;
+      // // }
+
+      // if (r_rows.size() == 1) {
+      //   unsafe_pos.push_back({l_col, r_col});
+      //   comp.clear();
+      //   j -= 2;
+      //   if (j <= 0)
+      //     break;
+      //   l_rows = matches_vec[i].haplos[j];
+      //   continue;
+      // }
+      // if ((l_col - 1) == r_col) {
+      //   is_recomb = true;
+      //   if (rows.size() >= 2) {
+      //     comp = filter_comp(comp, r_rows);
+      //     l_rows = red_pairs(comp);
+      //     if (comp.empty() && j > 0) {
+      //       l_rows = matches_vec[i].haplos[j - 1];
+      //       comp = generate_pairs(l_rows);
+      //     }
+
+      //     if (j > 0)
+      //       recomb.push_back(
+      //           {comp, std::get<2>(matches_vec[i].basic_matches[j - 1])});
+      //     // if (!comp.empty() && j > 0) {
+      //     //   if (recomb.empty()) {
+      //     //     recomb.push_back(
+      //     //         {comp, std::get<2>(matches_vec[i].basic_matches[j -
+      //     //         1])});
+      //     //   } else {
+      //     //     recomb[recomb.size() - 1] = {
+      //     //         comp, std::get<2>(matches_vec[i].basic_matches[j -
+      //     1])};
+      //     //   }
+      //     // }
+      //     // if (j > 0)
+      //     //   l_rows = matches_vec[i].haplos[j - 1];
+
+      //   } else {
+      //     if (l_rows.size() < 2)
+      //       l_rows = matches_vec[i].haplos[j];
+      //     comp = generate_pairs(l_rows);
+      //     if (!comp.empty()) {
+      //       // if (recomb.empty()) {
+      //       //   recomb.push_back(
+      //       //       {comp, std::get<2>(matches_vec[i].basic_matches[j])});
+      //       // } else {
+      //       //   recomb[recomb.size() - 1] = {
+      //       //       comp, std::get<2>(matches_vec[i].basic_matches[j])};
+      //       // }
+      //       //
+      //       //
+      //       if (j > 0)
+      //         recomb.push_back(
+      //             {comp, std::get<2>(matches_vec[i].basic_matches[j -
+      //             1])});
+      //       // if (!recomb.empty() && j > 0 &&
+      //       //     recomb[recomb.size() - 1].second !=
+      //       //         std::get<2>(matches_vec[i].basic_matches[j - 1])) {
+      //       //   recomb.push_back(
+      //       //       {comp, std::get<2>(matches_vec[i].basic_matches[j -
+      //       //       1])});
+      //       // } else if (recomb.empty() && j > 0) {
+      //       //   recomb.push_back(
+      //       //       {comp, std::get<2>(matches_vec[i].basic_matches[j -
+      //       //       1])});
+      //       // }
+      //     }
+      //     if (j > 0) {
+      //       l_rows = matches_vec[i].haplos[j - 1];
+      //       comp = generate_pairs(l_rows);
+      //       // if (!recomb.empty() &&
+      //       //     recomb[recomb.size() - 1].second != l_col - 1) {
+      //       //   recomb.push_back({comp, l_col - 1});
+      //       // } else if (recomb.empty()) {
+      //       //   recomb.push_back({comp, l_col - 1});
+      //       // }
+      //     }
+      //   }
+      // } else {
+      //   mat = get_sub_matrix(rows, l_col, r_col);
+      //   // for (auto r : mat) {
+      //   //   for (auto c : r) {
+      //   //     std::cout << c << " ";
+      //   //   }
+      //   //   std::cout << std::endl;
+      //   // }
+      //   // TODO se mat vuota intersezione tra pairs e nuove righe (dei
+      //   pairs
+      //   // tengo solo quelle con righe negli haplosm di MPSC successiva)
+      //   comp_supp = get_comp(mat, rows);
+      //   // for (auto c : comp_supp)
+      //   //   std::cout << c.first << "," << c.second << " ";
+      //   //
+      //   auto back = comp;
+      //   if ((j == matches_vec[i].basic_matches.size() - 1 && len_pref == 0)
+      //   ||
+      //       comp.empty()) {
+      //     l_rows = red_pairs(comp_supp);
+      //     comp = comp_supp;
+      //   } else {
+      //     comp = intersection_pairs(comp, comp_supp);
+      //     l_rows = red_pairs(comp);
+      //   }
+      //   // for (auto c : comp)
+      //   //   std::cout << c.first << "," << c.second << " ";
+      //   // std::cout << j << std::endl;
+      //   //
+      //   //
+      //   if (j > 0 && !comp.empty()) {
+      //     recomb.push_back(
+      //         {comp, std::get<2>(matches_vec[i].basic_matches[j - 1])});
+      //   }
+      //   // if (!comp.empty() && j > 0) {
+      //   //   if (recomb.empty()) {
+      //   //     recomb.push_back(
+      //   //         {comp, std::get<2>(matches_vec[i].basic_matches[j -
+      //   1])});
+
+      //   //   } else {
+      //   //     recomb[recomb.size() - 1] = {
+      //   //         comp, std::get<2>(matches_vec[i].basic_matches[j - 1])};
+      //   //   }
+      //   // }
+      //   else {
+      //     // if (!back.empty() &&
+      //     // std::get<2>(matches_vec[i].basic_matches[j])
+      //     // <
+      //     //                          recomb[recomb.size() - 1].second)
+      //     //   recomb.push_back(
+      //     //       {back, std::get<2>(matches_vec[i].basic_matches[j])});
+      //     if (!back.empty() &&
+      //         (recomb.empty() ||
+      //          recomb[recomb.size() - 1].second != l_col - 1)) {
+      //       recomb.push_back({back, l_col - 1});
+      //       // recomb[recomb.size() - 1] = {back, l_col - 1};
+      //     } else if (recomb.empty() ||
+      //                recomb[recomb.size() - 1].second != l_col - 1)
+      //       recomb.push_back(
+      //           {generate_pairs(matches_vec[i].haplos[j]), l_col - 1});
+
+      //     is_recomb = true;
+      //     std::vector<unsigned int> v(this->height);
+      //     std::iota(std::begin(v), std::end(v), 0);
+      //     mat = get_sub_matrix(v, l_col, r_col);
+      //     comp = get_comp(mat, v);
+      //     l_rows = red_pairs(comp);
+      //     // if (comp.empty()) {
+
+      //     //   l_rows = matches_vec[i].haplos[j];
+      //     //   comp = generate_pairs(l_rows);
+      //     // }
+      //     if (!unsafe) {
+      //       if (!comp.empty() &&
+      //           (recomb.empty() ||
+      //            recomb[recomb.size() - 1].second != r_col)) {
+      //         recomb.push_back({comp, r_col});
+      //         if (j > 0)
+      //           l_rows = matches_vec[i].haplos[j - 1];
+      //         comp.clear();
+      //       } else {
+      //         if (j > 0)
+      //           l_rows = matches_vec[i].haplos[j - 1];
+      //         comp.clear();
+      //       }
+      //     }
+      //     if (unsafe) {
+      //       unsafe_pos.push_back({l_col, r_col});
+      //       comp.clear();
+      //       if (j > 0 && comp.empty())
+      //         l_rows = matches_vec[i].haplos[j - 1];
+      //       // comp = generate_pairs(l_rows);
+      //       // if (!comp.empty() &&
+      //       //     (recomb.empty() || recomb[recomb.size() - 1].second !=
+      //       //     r_col))
+      //       //   recomb.push_back({comp, r_col});
+      //       // comp.clear();
+      //     }
+      //   }
+      // }
+      // j--;
+      //}
 
       if (len_suff != 0) {
         mat = get_sub_matrix(l_rows, this->width - len_suff, this->width - 1);
@@ -2555,10 +2766,14 @@ public:
       //   for (auto c : r_comp.first) {
       //     std::cout << "(" << c.first << ", " << c.second << ") ";
       //   }
-      //   std::cout << ", " << r_comp.second << "]; \n";
+      //   std::cout << ", " << r_comp.second << "]; " <<
+      //   queries[i][r_comp.second]
+      //             << " a\n";
       // }
-      std::cout << std::endl;
-      optimize_recomb(recomb);
+      // std::cout << std::endl;
+      std::pair<unsigned int, unsigned int> best;
+      optimize_recomb(recomb, best);
+      bests.push_back(best);
       std::vector<unsigned int> target_pos;
       for (auto d : data_t)
         target_pos.push_back(std::stoi(d[1]) - 1);
@@ -2610,17 +2825,18 @@ public:
         //    std::cout << "(" << c.first << ", " << c.second << ")\n";
         //  }
         // int hap1 = comp[0].first % 2 == 0 ? 0 : 1;
-        // auto h1 = gh(ref, samples[int(std::floor(comp[0].first / 2))], hap1,
-        // ps,
+        // auto h1 = gh(ref, samples[int(std::floor(comp[0].first / 2))],
+        // hap1, ps,
         //              fpr2, hdrr2);
         // int hap2 = comp[0].second % 2 == 0 ? 0 : 1;
-        // auto h2 = gh(ref, samples[int(std::floor(comp[0].second / 2))], hap2,
+        // auto h2 = gh(ref, samples[int(std::floor(comp[0].second / 2))],
+        // hap2,
         //              ps, fpr2, hdrr2);
 
         // auto h1 = slice_sd_vector(this->panel[comp[0].first], 0,
-        // this->width); auto h2 = slice_sd_vector(this->panel[comp[0].second],
-        // 0, this->width); phased_haplos.push_back(h1);
-        // phased_haplos.push_back(h2);
+        // this->width); auto h2 =
+        // slice_sd_vector(this->panel[comp[0].second], 0, this->width);
+        // phased_haplos.push_back(h1); phased_haplos.push_back(h2);
         std::vector<unsigned int> samples_ref1(this->width, comp[0].first);
         std::vector<unsigned int> samples_ref2(this->width, comp[0].second);
         auto map_pos1 = get_ref_pos(samples_ref1, target_pos, ref_sites);
@@ -2696,13 +2912,22 @@ public:
         // std::cout << samples_ref1.size() << " " << target_pos.size() << " "
         //          << ref_sites.size() << "\n";
         // for (auto x : samples_ref1) {
-        //  std::cout << x << " ";
-        //}
+        //   std::cout << x << " ";
+        // }
         // std::cout << std::endl;
+        // for (auto x : target_pos) {
+        //   std::cout << x << " ";
+        // }
+        // std::cout << std::endl;
+        // for (auto x : ref_sites) {
+        //   std::cout << x << " ";
+        // }
+        // std::cout << std::endl;
+        // // std::cout << std::endl;
         auto map_pos1 = get_ref_pos(samples_ref1, target_pos, ref_sites);
         // for (auto m : map_pos1) {
         //   std::cout << std::get<0>(m) << " " << std::get<1>(m) << " "
-        //             << std::get<1>(m) << "\n";
+        //             << std::get<2>(m) << "\n";
         // }
         auto map_pos2 = get_ref_pos(samples_ref2, target_pos, ref_sites);
         tmp1 = getfromref(ref_panel, map_pos1);
@@ -2710,7 +2935,8 @@ public:
         tmp2 = getfromref(ref_panel, map_pos2);
         phased_haplos.push_back(tmp1);
         phased_haplos.push_back(tmp2);
-        // std::cout << is_safety_phased.size() << " " << target_pos.size() << "
+        // std::cout << is_safety_phased.size() << " " << target_pos.size() <<
+        // "
         // "
         //           << ref_sites.size() << "\n";
         is_phases_full.push_back(
@@ -2759,6 +2985,7 @@ public:
         ph[u] = true;
       }
     }
+
     // std::cout << ph.size() << " " << hs[0].size() << " \n";
     //   for (unsigned int u = 0; u < this->width; u++) {
     //     std::cout << ph[u];
@@ -2784,9 +3011,8 @@ public:
                          std::to_string(ref_sites[ref_sites.size() - 1]) + ">";
     bcf_hdr_append(hdro, "##fileformat=VCFv4.2");
     bcf_hdr_append(hdro, header.c_str());
-    bcf_hdr_append(
-        hdro,
-        "##FORMAT=<ID=IMP,Number=0,Type=Flag,Description=\"Imputed marker\">");
+    bcf_hdr_append(hdro, "##FORMAT=<ID=IMP,Number=0,Type=Flag,Description="
+                         "\"Imputed marker\">");
 
     bcf_hdr_append(
         hdro, "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">");
@@ -2844,9 +3070,38 @@ public:
       // else {
       //   bcf_update_format_int32(hdro, reco, "IMP", 1, 1);
       // }
-      for (int j = 0; j < samples_t.size(); j++) {
-        gt_arr[j * 2] = bcf_gt_phased(hs[j][i].first);
-        gt_arr[j * 2 + 1] = bcf_gt_phased(hs[j][i].second);
+      if (ph[i]) {
+        for (int j = 0; j < samples_t.size(); j++) {
+          gt_arr[j * 2] = bcf_gt_phased(hs[j][i].first);
+          gt_arr[j * 2 + 1] = bcf_gt_phased(hs[j][i].second);
+        }
+      } else {
+
+        for (int j = 0; j < samples_t.size(); j++) {
+          // if (hs[j][i].first == bests[j].first &&
+          //     hs[j][i].second == bests[j].second) {
+          //   gt_arr[j * 2] = bcf_gt_phased(hs[j][i].first);
+          //   gt_arr[j * 2 + 1] = bcf_gt_phased(hs[j][i].second);
+          // } else
+          if (mappos.find(reco->pos) != mappos.end()) {
+            auto q = queries[j][mappos[reco->pos]];
+            if (q == '0') {
+              gt_arr[j * 2] = bcf_gt_unphased(0);
+              gt_arr[j * 2 + 1] = bcf_gt_unphased(0);
+            } else if (q == '1') {
+              gt_arr[j * 2] = bcf_gt_unphased(1);
+              gt_arr[j * 2 + 1] = bcf_gt_unphased(1);
+            } else if (q == '2') {
+              gt_arr[j * 2] = bcf_gt_unphased(0);
+              gt_arr[j * 2 + 1] = bcf_gt_unphased(1);
+            }
+          } else {
+            for (int j = 0; j < samples_t.size(); j++) {
+              gt_arr[j * 2] = bcf_gt_unphased(hs[j][i].first);
+              gt_arr[j * 2 + 1] = bcf_gt_unphased(hs[j][i].second);
+            }
+          }
+        }
       }
       bcf_update_genotypes(hdro, reco, gt_arr, samples_t.size() * 2);
 
@@ -2864,18 +3119,28 @@ public:
 
   void optimize_recomb(
       std::vector<std::pair<std::vector<std::pair<unsigned int, unsigned int>>,
-                            unsigned int>> &recomb) {
-    std::map<std::pair<int, int>, int> counts;
-    std::set<std::pair<int, int>> used;
-
+                            unsigned int>> &recomb,
+      std::pair<unsigned int, unsigned int> &b) {
+    std::map<std::pair<unsigned int, unsigned int>, int> counts;
+    std::set<std::pair<unsigned int, unsigned int>> used;
+    unsigned int total = 0;
     for (const auto &r : recomb) {
       for (const auto &p : r.first) {
         counts[p]++;
+        total++;
       }
     }
 
+    auto b_v = counts[recomb[0].first[0]];
+    b = recomb[0].first[0];
+    for (auto v : counts) {
+      if (v.second > b_v) {
+        b = v.first;
+        b_v = v.second;
+      }
+    }
     for (size_t i = 0; i < recomb.size(); i++) {
-      std::pair<int, int> best = recomb[i].first[0];
+      std::pair<unsigned int, unsigned int> best = recomb[i].first[0];
       int m = 0;
 
       for (const auto &p : recomb[i].first) {
@@ -2884,9 +3149,27 @@ public:
           m = counts[p];
         }
       }
+
       recomb[i].first = {best};
       used.insert(best);
     }
+    // std::cerr << "thr: " << std::floor((float)recomb.size() / 10) <<
+    // std::endl;
+    // std::cerr << recomb.size() << "\n";
+    // for (size_t i = 0; i < recomb.size(); i++) {
+    //   std::pair<int, int> best = recomb[i].first[0];
+    //   // std::cerr << "for " << best.first << " " << best.second << " "
+    //   //           << counts[recomb[i].first[0]] << " vs "
+    //   //           << std::floor((float)recomb.size() / 10) << " vs "
+    //   //           << std::floor((float)total / 10) << "\n";
+    //   if (counts[recomb[i].first[0]] <= std::floor((float)recomb.size() /
+    //   5))
+    //   {
+    //     recomb.erase(recomb.begin() + i);
+    //     // std::cerr << "delete\n";
+    //   }
+    // }
+    // std::cerr << recomb.size() << "\n";
   }
 
   std::vector<unsigned int> getfromref(
@@ -2993,8 +3276,8 @@ public:
 
     for (size_t j = 0; j < ref_pos.size(); ++j) {
       if (i + 1 < target_pos.size() && ref_pos[j] >= target_pos[i + 1]) {
-        intervals.emplace_back(lastValue, start_idx, j);
-        start_idx = j + 1;
+        intervals.emplace_back(lastValue, start_idx, j - 1);
+        start_idx = j;
         lastValue = samples[++i];
       }
     }
@@ -3002,6 +3285,43 @@ public:
       intervals.emplace_back(lastValue, start_idx, ref_pos.size() - 1);
 
     return compactIntervals(intervals);
+  }
+
+  std::vector<std::tuple<bool, size_t, size_t>>
+  get_ref_posb(const std::vector<bool> &samples,
+               const std::vector<unsigned int> &target_pos,
+               const std::vector<unsigned int> &ref_pos) {
+
+    // std::vector<unsigned int> res(ref_pos.size());
+    // size_t i = 0;
+    // unsigned int lastValue = 0;
+
+    // for (size_t j = 0; j < ref_pos.size(); ++j) {
+    //   if (i < target_pos.size() && ref_pos[j] == target_pos[i]) {
+    //     lastValue = samples[i];
+    //     ++i;
+    //   }
+    //   res[j] = lastValue;
+    // }
+
+    // return res;
+    //
+    std::vector<std::tuple<bool, size_t, size_t>> intervals;
+    size_t i = 0;
+    size_t start_idx = 0;
+    unsigned int lastValue = samples[0];
+
+    for (size_t j = 0; j < ref_pos.size(); ++j) {
+      if (i + 1 < target_pos.size() && ref_pos[j] >= target_pos[i + 1]) {
+        intervals.emplace_back(lastValue, start_idx, j - 1);
+        start_idx = j;
+        lastValue = samples[++i];
+      }
+    }
+    if (start_idx < ref_pos.size())
+      intervals.emplace_back(lastValue, start_idx, ref_pos.size() - 1);
+
+    return compactIntervalsb(intervals);
   }
   std::vector<std::tuple<unsigned int, size_t, size_t>> compactIntervals(
       const std::vector<std::tuple<unsigned int, size_t, size_t>> &intervals) {
@@ -3032,7 +3352,35 @@ public:
     compacted.emplace_back(current_value, start_idx, end_idx);
     return compacted;
   }
+  std::vector<std::tuple<bool, size_t, size_t>> compactIntervalsb(
+      const std::vector<std::tuple<bool, size_t, size_t>> &intervals) {
 
+    if (intervals.empty())
+      return {};
+
+    std::vector<std::tuple<bool, size_t, size_t>> compacted;
+    bool current_value = std::get<0>(intervals[0]);
+    size_t start_idx = std::get<1>(intervals[0]);
+    size_t end_idx = std::get<2>(intervals[0]);
+
+    for (size_t i = 1; i < intervals.size(); ++i) {
+      bool value = std::get<0>(intervals[i]);
+      size_t new_start = std::get<1>(intervals[i]);
+      size_t new_end = std::get<2>(intervals[i]);
+
+      if (value == current_value && new_start == end_idx + 1) {
+        end_idx = new_end;
+      } else {
+        compacted.emplace_back(current_value, start_idx, end_idx);
+        current_value = value;
+        start_idx = new_start;
+        end_idx = new_end;
+      }
+    }
+
+    compacted.emplace_back(current_value, start_idx, end_idx);
+    return compacted;
+  }
   std::vector<std::vector<std::pair<unsigned int, unsigned int>>>
   cp(const std::vector<std::vector<unsigned int>> &matrix) {
     std::vector<std::vector<std::pair<unsigned int, unsigned int>>> result;
