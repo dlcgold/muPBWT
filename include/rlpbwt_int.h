@@ -2422,12 +2422,12 @@ public:
           if (rows.size() >= 2) {
             comp = filter_comp(comp, rows);
             l_rows = red_pairs(comp);
-            if (j > 0)
+            if (j > 0 && !comp.empty())
               recomb.push_back(
                   {comp, std::get<2>(matches_vec[i].basic_matches[j - 1])});
             comp_back = comp;
           } else {
-            if (!comp.empty()) {
+            if (!comp_back.empty()) {
               if (!recomb.empty() &&
                   recomb[recomb.size() - 1].second !=
                       std::get<2>(matches_vec[i].basic_matches[j]))
@@ -2461,7 +2461,7 @@ public:
               }
             } else {
               is_recomb = true;
-              if (!recomb.empty() &&
+              if (!recomb.empty() && !comp_back.empty() &&
                   recomb[recomb.size() - 1].second !=
                       std::get<2>(matches_vec[i].basic_matches[j]))
                 recomb.push_back(
@@ -2489,7 +2489,7 @@ public:
             }
           } else {
             is_recomb = true;
-            if (!recomb.empty() &&
+            if (!recomb.empty() && !comp_back.empty() &&
                 recomb[recomb.size() - 1].second !=
                     std::get<2>(matches_vec[i].basic_matches[j]))
               recomb.push_back(
@@ -2761,7 +2761,7 @@ public:
       //                    unsigned int>>
       // recomb_f;
       // for (auto r_comp : recomb) {
-
+      //   // if (r_comp.first.empty()) {
       //   std::cout << "[ ";
       //   for (auto c : r_comp.first) {
       //     std::cout << "(" << c.first << ", " << c.second << ") ";
@@ -2769,8 +2769,16 @@ public:
       //   std::cout << ", " << r_comp.second << "]; " <<
       //   queries[i][r_comp.second]
       //             << " a\n";
+      //   // }
       // }
       // std::cout << std::endl;
+      // for (auto r_comp : recomb) {
+      //   std::cout << "[ ";
+      //   for (auto c : r_comp.first) {
+      //     std::cout << "(" << c.first << ", " << c.second << ") ";
+      //   }
+      //   std::cout << ", " << r_comp.second << "]; \n";
+      // }
       std::pair<unsigned int, unsigned int> best;
       optimize_recomb(recomb, best);
       bests.push_back(best);
@@ -2782,14 +2790,6 @@ public:
       //   std::cout << "(" << c.first << ", " << c.second << ")\n";
       // }
       // std::cout << std::endl;
-
-      // for (auto r_comp : recomb) {
-      //   std::cout << "[ ";
-      //   for (auto c : r_comp.first) {
-      //     std::cout << "(" << c.first << ", " << c.second << ") ";
-      //   }
-      //   std::cout << ", " << r_comp.second << "]; \n";
-      // }
 
       // std::cout << std::endl;
 
@@ -2908,6 +2908,7 @@ public:
           // }
           // std::cout << ", " << r_comp.second << "];\n";
         }
+
         // std::cout << "------nnbbbbbbbba-" << std::endl;
         // std::cout << samples_ref1.size() << " " << target_pos.size() << " "
         //          << ref_sites.size() << "\n";
@@ -3133,6 +3134,7 @@ public:
 
     auto b_v = counts[recomb[0].first[0]];
     b = recomb[0].first[0];
+
     for (auto v : counts) {
       if (v.second > b_v) {
         b = v.first;
@@ -3140,11 +3142,17 @@ public:
       }
     }
     for (size_t i = 0; i < recomb.size(); i++) {
+
       std::pair<unsigned int, unsigned int> best = recomb[i].first[0];
+      fflush(stdout);
       int m = 0;
 
       for (const auto &p : recomb[i].first) {
+
+        fflush(stdout);
         if (counts[p] > m || (counts[p] == m && used.count(p))) {
+
+          fflush(stdout);
           best = p;
           m = counts[p];
         }
