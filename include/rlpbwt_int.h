@@ -2388,9 +2388,10 @@ public:
         std::iota(std::begin(v), std::end(v), 0);
         mat = get_sub_matrix(v, 0, len_pref - 1);
         comp = get_comp(mat, v);
-
-        l_rows = red_pairs(comp);
+        if (!comp.empty())
+          recomb.push_back({comp, len_pref - 1});
         unsafe_pos.push_back({0, len_pref - 1});
+
         l_rows = matches_vec[i].haplos[j];
         comp.clear();
       }
@@ -2419,6 +2420,10 @@ public:
         // }
         if ((l_col - 1) == r_col) {
           is_recomb = true;
+          if ((j == matches_vec[i].basic_matches.size() - 1 && len_pref == 0)) {
+            comp = generate_pairs(l_rows);
+            comp_back = comp;
+          }
           if (rows.size() >= 2) {
             comp = filter_comp(comp, rows);
             l_rows = red_pairs(comp);
@@ -2428,11 +2433,15 @@ public:
             comp_back = comp;
           } else {
             if (!comp_back.empty()) {
-              if (!recomb.empty() &&
-                  recomb[recomb.size() - 1].second !=
-                      std::get<2>(matches_vec[i].basic_matches[j]))
+              if (recomb.empty()) {
                 recomb.push_back(
                     {comp_back, std::get<2>(matches_vec[i].basic_matches[j])});
+              } else if (!recomb.empty() &&
+                         recomb[recomb.size() - 1].second !=
+                             std::get<2>(matches_vec[i].basic_matches[j])) {
+                recomb.push_back(
+                    {comp_back, std::get<2>(matches_vec[i].basic_matches[j])});
+              }
             }
             if (j > 0) {
               l_rows = matches_vec[i].haplos[j - 1];
@@ -2461,9 +2470,12 @@ public:
               }
             } else {
               is_recomb = true;
-              if (!recomb.empty() && !comp_back.empty() &&
-                  recomb[recomb.size() - 1].second !=
-                      std::get<2>(matches_vec[i].basic_matches[j]))
+              if (recomb.empty() && !comp_back.empty()) {
+                recomb.push_back(
+                    {comp_back, std::get<2>(matches_vec[i].basic_matches[j])});
+              } else if (!recomb.empty() && !comp_back.empty() &&
+                         recomb[recomb.size() - 1].second !=
+                             std::get<2>(matches_vec[i].basic_matches[j]))
                 recomb.push_back(
                     {comp_back, std::get<2>(matches_vec[i].basic_matches[j])});
               std::vector<unsigned int> v(this->height);
@@ -2517,6 +2529,13 @@ public:
           }
         }
         j--;
+        if (j == 0 && len_suff == 0) {
+          if (!comp.empty() &&
+              (recomb.empty() ||
+               recomb[recomb.size() - 1].second != this->width - 1)) {
+            recomb.push_back({comp, this->width - 1});
+          }
+        }
       }
 
       // // std::cout << j << "\n";
@@ -2726,20 +2745,19 @@ public:
       if (len_suff != 0) {
         mat = get_sub_matrix(l_rows, this->width - len_suff, this->width - 1);
         comp_supp = get_comp(mat, l_rows);
-        if (!unsafe) {
-          comp = intersection_pairs(comp, comp_supp);
+        comp = intersection_pairs(comp, comp_supp);
+        if (!comp.empty())
+          recomb.push_back({comp, this->width - 1});
+        else {
+          // comp = generate_pairs(l_rows);
+          std::vector<unsigned int> v(this->height);
+          std::iota(std::begin(v), std::end(v), 0);
+          mat = get_sub_matrix(v, this->width - len_suff, this->width - 1);
+          comp = get_comp(mat, v);
           if (!comp.empty())
             recomb.push_back({comp, this->width - 1});
-          else {
-            // comp = generate_pairs(l_rows);
-            std::vector<unsigned int> v(this->height);
-            std::iota(std::begin(v), std::end(v), 0);
-            mat = get_sub_matrix(v, this->width - len_suff, this->width - 1);
-            comp = get_comp(mat, v);
-            if (!comp.empty())
-              recomb.push_back({comp, this->width - 1});
-          }
         }
+
         if (unsafe)
           unsafe_pos.push_back({this->width - len_suff + 1, this->width - 1});
       }
@@ -2785,6 +2803,18 @@ public:
       std::vector<unsigned int> target_pos;
       for (auto d : data_t)
         target_pos.push_back(std::stoi(d[1]) - 1);
+      // for (auto r_comp : recomb) {
+      //   // if (r_comp.first.empty()) {
+      //   std::cout << "[ ";
+      //   for (auto c : r_comp.first) {
+      //     std::cout << "(" << c.first << ", " << c.second << ") ";
+      //   }
+      //   std::cout << ", " << r_comp.second << "]; " <<
+      //   queries[i][r_comp.second]
+      //             << " a\n";
+      //   // }
+      // }
+
       // std::cout << comp.size() << " " << recomb.size() << "\n";
       // for (auto c : comp) {
       //   std::cout << "(" << c.first << ", " << c.second << ")\n";
