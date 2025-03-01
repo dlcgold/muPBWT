@@ -5,7 +5,7 @@ rule extractVerboseQuery:
         os.path.join(bench_folder, "time", "{tool}", "mutate_{q}", "prediction.csv"),
     shell:
         """
-        python workflow/scripts/time_verbose_extractor.py {wildcards.tool} {wildcards.q} < {input} > {output}
+        python workflow/scripts/time_verbose_extractor.py {wildcards.q} {wildcards.tool} < {input} > {output}
         """
 
 rule Hapcut2Csv:
@@ -15,7 +15,7 @@ rule Hapcut2Csv:
        os.path.join(bench_folder, "ser_hapcut2", "{tool}", "mutate_{q}", "prediction.ser.csv"),
     shell:
         """
-        python workflow/scripts/hapcut2_ser_extractor.py {wildcards.tool} {wildcards.q} < {input} > {output}
+        python workflow/scripts/hapcut2_ser_extractor.py {wildcards.q} {wildcards.tool} < {input} > {output}
         """
 
 rule mergeTime:
