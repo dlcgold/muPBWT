@@ -1,0 +1,16 @@
+folder:
+  prefix: "resources"
+  software: "software"
+  res: "results"
+  input: "input"
+  output: "output"
+params:
+  reference: "example/reference.vcf"
+  beagle_map: "example/2.map"
+  chrom: "2"
+  mutations_perc: ["0", "1", "3", "5", "10", "20"]
+  threads: "2"
+
+tools:
+  mupbwt_path: "tools/mupbwt"
+  beagle_path: "tools/beagle.jar"
