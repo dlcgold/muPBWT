@@ -1,0 +1,49 @@
+from snakemake.utils import min_version
+import os
+
+##### config file #####
+configfile: "config/config.yaml"
+
+##### set minimum snakemake version #####
+min_version("6.4.1")
+
+
+
+software_tmp = config["folder"]["software"]
+input_tmp = config["folder"]["input"]
+output_tmp = config["folder"]["output"]
+results_tmp = config["folder"]["res"]
+resources_folder = config["folder"]["prefix"]
+software_folder = os.path.join(resources_folder, software_tmp)
+input_folder = os.path.join(resources_folder, input_tmp)
+output_folder = os.path.join(resources_folder, output_tmp)
+results_folder = os.path.join(resources_folder, results_tmp)
+bench_folder = os.path.join(resources_folder, "bench")
+
+threads = int(config["params"]["threads"])
+reference = config["params"]["reference"]
+beagle_map = config["params"]["beagle_map"]
+mutations_perc = config["params"]["mutations_perc"]
+chrom = config["params"]["chrom"]
+
+
+mupbwt = config["tools"]["mupbwt_path"]
+beagle = config["tools"]["beagle_path"]
+
+
+
+
+##### include rules #####
+include: "rules/common.smk"
+include: "rules/mupbwt.smk"
+include: "rules/beagle.smk"
+include: "rules/analysis.smk"
+include: "rules/results.smk"
+##### target rules #####
+rule all:
+    input:
+        #expand(os.path.join(bench_folder,"ser_hapcut2", "mupbwt", "mutate_{q}", "prediction.ser.txt"),q=mutations_perc),
+	#expand(os.path.join(bench_folder, "ser_hapcut2", "mupbwt_u", "mutate_{q}", "prediction.ser.txt"),q=mutations_perc),
+        #expand(os.path.join(bench_folder, "ser_hapcut2", "beagle", "mutate_{q}", "prediction.ser.txt"),q=mutations_perc)
+        os.path.join(results_folder, "time.csv"),
+        os.path.join(results_folder, "hapcut2.csv"),
