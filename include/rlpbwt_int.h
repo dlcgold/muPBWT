@@ -1433,6 +1433,8 @@ public:
     //  this->cols[0].i_e_k[curr_run];
     //   auto s_index = this->cols[0].p[this->cols[0].sample_end.size() - 1];
     //    iterate over every query's symbol/column index
+    unsigned int old_len = 0;
+    unsigned int old_len_supp = 0;
     for (unsigned int i = 0; i < query.size(); i++) {
       // std::cout << "processed " << i << "\r";
       if (verbose) {
@@ -1482,10 +1484,16 @@ public:
 
         if (i == 0) {
           ms.len[i] = 1;
+          old_len = ms.len[i];
           ms.len_supp[i] = 1;
+          old_len_supp = ms.len_supp[i];
         } else {
-          ms.len[i] = ms.len[i - 1] + 1;
-          ms.len_supp[i] = ms.len_supp[i - 1] + 1;
+          // ms.len[i] = ms.len[i - 1] + 1;
+          ms.len[i] = old_len + 1;
+          old_len = ms.len[i];
+          // ms.len_supp[i] = ms.len_supp[i - 1] + 1;
+          ms.len_supp[i] = old_len_supp + 1;
+          old_len_supp = ms.len_supp[i];
         }
         // ms.len[i] = std::min(ms.len[i], ms.len_supp[i]);
         if (i != query.size() - 1) {
@@ -1513,7 +1521,9 @@ public:
         // ms.row_supp[i] = this->height;
         ms_supp[i] = this->height;
         ms.len[i] = 0;
+        old_len = ms.len[i];
         ms.len_supp[i] = 0;
+        old_len_supp = ms.len_supp[i];
         // update index, run, symbol (as explained before) if we are
         // not at the end
         if (i != query.size() - 1) {
@@ -1582,7 +1592,9 @@ public:
             // ms.row_supp[i] = this->height;
             ms_supp[i] = this->height;
             ms.len[i] = 0;
+            old_len = ms.len[i];
             ms.len_supp[i] = 0;
+            old_len_supp = ms.len_supp[i];
             // update index, run, symbol (as explained before) if we are
             // not at the end
             if (i != query.size() - 1) {
@@ -1645,8 +1657,14 @@ public:
               len++;
             }
 
-            ms.len[i] = len;
-            ms.len_supp[i] = this->cols[i].l_e_k[curr_run - 1];
+            // ms.len[i] = len;
+            ms.len[i] = len <= 2 ? len : 2;
+            old_len = ms.len[i];
+            // ms.len_supp[i] = this->cols[i].l_e_k[curr_run - 1];
+            ms.len_supp[i] = this->cols[i].l_e_k[curr_run - 1] <= 2
+                                 ? this->cols[i].l_e_k[curr_run - 1]
+                                 : 2;
+            old_len_supp = ms.len_supp[i];
             // ms.len[i] = std::min(len, ms.len_supp[i]);
             //  update index, run, symbol if we are not at the end
             if (i != query.size() - 1) {
@@ -1693,8 +1711,14 @@ public:
               tmp_index--;
               len++;
             }
-            ms.len[i] = len;
-            ms.len_supp[i] = this->cols[i].l_k[curr_run + 1];
+            // ms.len[i] = len;
+            ms.len[i] = len <= 2 ? len : 2;
+            old_len = ms.len[i];
+            // ms.len_supp[i] = this->cols[i].l_k[curr_run + 1];
+            ms.len_supp[i] = this->cols[i].l_k[curr_run + 1] <= 2
+                                 ? this->cols[i].l_k[curr_run + 1]
+                                 : 2;
+            old_len_supp = ms.len_supp[i];
             // ms.len[i] = std::min(len, ms.len_supp[i]);
             if (verbose) {
               std::cout << "update: " << curr_index << " " << curr_pos << " "
@@ -1738,10 +1762,15 @@ public:
 
             if (i == 0) {
               ms.len[i] = 1;
+              old_len = ms.len[i];
               ms.len_supp[i] = 1;
+              old_len_supp = ms.len_supp[i];
             } else {
-              ms.len[i] = ms.len[i - 1] + 1;
+              // ms.len[i] = ms.len[i - 1] + 1;
+              ms.len[i] = old_len + 1;
+              old_len = ms.len[i];
               ms.len_supp[i] = this->cols[i].l_e_k[curr_run];
+              old_len_supp = ms.len_supp[i];
               // ms.len_supp[i] = ms.len_supp[i - 1] + 1;
             }
             // ms.len[i] = std::min(ms.len[i], ms.len_supp[i]);
@@ -1789,9 +1818,14 @@ public:
                 len++;
               }
 
-              ms.len[i] = len;
-              ms.len_supp[i] = this->cols[i].l_e_k[curr_run];
-
+              // ms.len[i] = len;
+              ms.len[i] = len <= 2 ? len : 2;
+              old_len = ms.len[i];
+              // ms.len_supp[i] = this->cols[i].l_e_k[curr_run];
+              ms.len_supp[i] = this->cols[i].l_e_k[curr_run] <= 2
+                                   ? this->cols[i].l_e_k[curr_run]
+                                   : 2;
+              old_len_supp = ms.len_supp[i];
               // update index, run, symbol (as explained before) if we are
               // not at the end
               if (i != query.size() - 1) {
@@ -1837,8 +1871,14 @@ public:
                 tmp_index--;
                 len++;
               }
-              ms.len[i] = len;
-              ms.len_supp[i] = this->cols[i].l_e_k[curr_run];
+              // ms.len[i] = len;
+              ms.len[i] = len <= 2 ? len : 2;
+              old_len = ms.len[i];
+              // ms.len_supp[i] = this->cols[i].l_e_k[curr_run];
+              ms.len_supp[i] = this->cols[i].l_e_k[curr_run] <= 2
+                                   ? this->cols[i].l_e_k[curr_run]
+                                   : 2;
+              old_len_supp = ms.len_supp[i];
               // update index, run, symbol (as explained before) if we are
               // not at the end
               if (i != query.size() - 1) {
@@ -1865,10 +1905,15 @@ public:
 
             if (i == 0) {
               ms.len[i] = 1;
+              old_len = ms.len[i];
               ms.len_supp[i] = 1;
+              old_len_supp = ms.len_supp[i];
             } else {
-              ms.len[i] = ms.len[i - 1] + 1;
+              ms.len[i] = old_len + 1;
+              // ms.len[i] = ms.len[i - 1] + 1;
+              old_len = ms.len[i];
               ms.len_supp[i] = this->cols[i].l_e_k[curr_run];
+              old_len_supp = ms.len_supp[i];
             }
 
             unsigned int b = this->height - 1;
@@ -1910,12 +1955,20 @@ public:
               std::cout << "b " << b << " b_i " << b_i << " l_i " << l_i
                         << "\n";
             }
-            ms.len[i] = std::min(ms.len[i], lce(curr_index, b_i, i, ms.len[i]));
+            // ms.len[i] = std::min(ms.len[i], lce(curr_index, b_i, i,
+            // ms.len[i]));
+            ms.len[i] =
+                std::min(ms.len[i], lce(curr_index, b_i, i, ms.len[i])) <= 2
+                    ? std::min(ms.len[i], lce(curr_index, b_i, i, ms.len[i]))
+                    : 2;
+            old_len = ms.len[i];
             auto r_b_i = index_to_run(b_i, i);
             ms.row[i] = b;
             curr_pos = b;
 
-            ms.len_supp[i] = l_i;
+            // ms.len_supp[i] = l_i;
+            ms.len_supp[i] = l_i <= 2 ? l_i : 2;
+            old_len_supp = ms.len_supp[i];
             ms_supp[i] = b_i;
             if (i != query.size() - 1) {
               curr_index = lf(i, b_i, query[i]);
@@ -1947,25 +2000,77 @@ public:
         }
       }
 
-      if (verbose) {
-        std::cout << "ms row: " << ms.row[i] << ", ms supp: " << ms_supp[i]
-                  << ", ms len: " << ms.len[i]
-                  << ", ms len supp: " << ms.len_supp[i]
-                  << ", curr index: " << curr_index << ", sindex : " << s_index
+      // if (verbose) {
+      //   std::cout << "ms row: " << ms.row[i] << ", ms supp: " << ms_supp[i]
+      //             << ", ms len: " << ms.len[i]
+      //             << ", ms len supp: " << ms.len_supp[i]
+      //             << ", curr index: " << curr_index << ", sindex : " <<
+      //             s_index
 
-                  << ", with size: "
-                  << extend_single(ms.row[i],
-                                   std::min(ms.len[i], ms.len_supp[i]), i,
-                                   ms_supp[i])
-                         .size()
-                  << ", f_len: " << std::min(ms.len[i], ms.len_supp[i])
-                  << " at " << i << " [";
-        for (auto x :
-             extend_single(ms.row[i], std::min(ms.len[i], ms.len_supp[i]), i,
-                           ms_supp[i])) {
-          std::cout << x << " ";
+      //             << ", with size: "
+      //             << extend_single(ms.row[i],
+      //                              std::min(ms.len[i], ms.len_supp[i]), i,
+      //                              ms_supp[i])
+      //                    .size()
+      //             << ", f_len: " << std::min(ms.len[i], ms.len_supp[i])
+      //             << " at " << i << " [";
+      //   for (auto x :
+      //        extend_single(ms.row[i], std::min(ms.len[i], ms.len_supp[i]), i,
+      //                      ms_supp[i])) {
+      //     std::cout << x << " ";
+      //   }
+      //   std::cout << "\n";
+      // }
+
+      if (i != query.size() - 1 && std::min(ms.len[i], ms.len_supp[i]) >= 2) {
+        old_len = 0;
+        old_len_supp = 0;
+        // std::cout << "start_run"<< std::endl;
+        curr_run = best_run(i + 1, query[i + 1]);
+        // std::cout << "end_run"<< std::endl;
+        // std::cout << std::endl;
+        //   std::cout << "start_pos " << i << ""<< std::endl;
+        //   std::cout << curr_run << " " << this->cols[i +
+        //   1].sample_end.size() << std::endl;
+        curr_pos =
+            static_cast<unsigned int>(this->cols[i + 1].sample_end[curr_run]);
+        //      std::cout << "end_pos"<< std::endl;
+        //       std::cout << std::endl;
+        //       std::cout << "start_index " << i << "  " << this->width <<
+        //       ""<< std::endl;
+
+        curr_index = curr_run != this->cols[i + 1].p.size() - 1
+                         ? this->cols[i + 1].p[curr_run + 1] - 1
+                         : this->height - 1;
+        // std::cout << "end_index"<< std::endl;
+        // std::cout << std::endl;
+        // std::cout << "start_verbose"<< std::endl;
+        if (verbose) {
+
+          std::cout << lf(i + 1, curr_index, query[i + 1]) << " - "
+                    << this->cols[i + 1].i_e_k[curr_run] << " = "
+                    << lf(i + 1, curr_index, query[i + 1]) -
+                           this->cols[i + 1].i_e_k[curr_run]
+                    << "\n";
         }
-        std::cout << "\n";
+        //     std::cout << "end_verbose"<< std::endl;
+        //     std::cout << std::endl;
+        //     std::cout << "start_sindex"<< std::endl;
+        s_index = lf(i + 1, curr_index, query[i + 1]) -
+                  this->cols[i + 1].i_e_k[curr_run];
+        // std::cout << "end_sindex"<< std::endl;
+        //     std::cout << std::endl;
+        // std::cout << "start_symbol"<< std::endl;
+        symbol = get_next_char(this->cols[i + 1].zero_first, curr_run);
+        //  std::cout << "end_symbol"<< std::endl;
+        // std::cout << std::endl;
+        reset = true;
+        if (verbose) {
+          std::cout << "update: " << curr_index << " " << curr_pos << " "
+                    << symbol << "\n";
+          std::cout << "sindex " << s_index << " run sindex "
+                    << index_to_run(s_index, i) << "\n";
+        }
       }
     }
     // exit(0);
@@ -2453,6 +2558,7 @@ public:
 
           if (rows.size() >= 2) {
             mat = get_sub_matrix(rows, l_col, r_col);
+
             comp_supp = get_comp(mat, rows);
             if ((j == matches_vec[i].basic_matches.size() - 1 &&
                  len_pref == 0)) {
@@ -2462,6 +2568,7 @@ public:
               comp = intersection_pairs(comp, comp_supp);
               l_rows = red_pairs(comp);
             }
+
             if (!comp.empty()) {
               if (j > 0) {
                 recomb.push_back(
@@ -2470,12 +2577,103 @@ public:
               }
             } else {
               is_recomb = true;
+
+              if (j < matches_vec[i].basic_matches.size() - 1 &&
+                  std::get<0>(matches_vec[i].basic_matches[j]) ==
+                      std::get<2>(matches_vec[i].basic_matches[j + 1])) {
+                if (recomb.empty() && !comp_back.empty()) {
+                  recomb.push_back(
+                      {comp_back,
+                       std::get<0>(matches_vec[i].basic_matches[j]) - 1});
+                } else if (!recomb.empty() && !comp_back.empty() &&
+                           recomb[recomb.size() - 1].second !=
+                               std::get<0>(matches_vec[i].basic_matches[j]) -
+                                   1) {
+                  recomb.push_back(
+                      {comp_back,
+                       std::get<0>(matches_vec[i].basic_matches[j]) - 1});
+                }
+              }
+              l_rows = matches_vec[i].haplos[j];
+              rows = intersection(r_rows, l_rows);
+              mat = get_sub_matrix(rows, l_col, r_col);
+              comp_supp = get_comp(mat, rows);
+              comp = intersection_pairs(comp, comp_supp);
+              l_rows = red_pairs(comp);
+              if (!comp.empty()) {
+                if (j > 0) {
+                  recomb.push_back(
+                      {comp, std::get<2>(matches_vec[i].basic_matches[j - 1])});
+                  comp_back = comp;
+                }
+              } else {
+                is_recomb = true;
+                if (recomb.empty() && !comp_back.empty()) {
+                  recomb.push_back(
+                      {comp_back,
+                       std::get<2>(matches_vec[i].basic_matches[j])});
+                } else if (!recomb.empty() && !comp_back.empty() &&
+                           recomb[recomb.size() - 1].second !=
+                               std::get<2>(matches_vec[i].basic_matches[j])) {
+                  recomb.push_back(
+                      {comp_back,
+                       std::get<2>(matches_vec[i].basic_matches[j])});
+                }
+                std::vector<unsigned int> v(this->height);
+                std::iota(std::begin(v), std::end(v), 0);
+                mat = get_sub_matrix(v, l_col, r_col);
+                comp = get_comp(mat, v);
+                l_rows = red_pairs(comp);
+                if (!unsafe) {
+                  if (!comp.empty() &&
+                      (recomb.empty() ||
+                       recomb[recomb.size() - 1].second != r_col)) {
+                    recomb.push_back({comp, r_col});
+                  }
+                } else {
+                  unsafe_pos.push_back({l_col, r_col});
+                }
+                comp.clear();
+                if (j > 0) {
+                  l_rows = matches_vec[i].haplos[j - 1];
+                  comp = generate_pairs(l_rows);
+                  comp_back = comp;
+                }
+              }
+            }
+          } else {
+            is_recomb = true;
+            if (j < matches_vec[i].basic_matches.size() - 1 &&
+                std::get<0>(matches_vec[i].basic_matches[j]) ==
+                    std::get<2>(matches_vec[i].basic_matches[j + 1])) {
               if (recomb.empty() && !comp_back.empty()) {
                 recomb.push_back(
-                    {comp_back, std::get<2>(matches_vec[i].basic_matches[j])});
+                    {comp_back,
+                     std::get<0>(matches_vec[i].basic_matches[j]) - 1});
               } else if (!recomb.empty() && !comp_back.empty() &&
                          recomb[recomb.size() - 1].second !=
-                             std::get<2>(matches_vec[i].basic_matches[j]))
+                             std::get<0>(matches_vec[i].basic_matches[j]) - 1) {
+                recomb.push_back(
+                    {comp_back,
+                     std::get<0>(matches_vec[i].basic_matches[j]) - 1});
+              }
+            }
+            l_rows = matches_vec[i].haplos[j];
+            rows = intersection(r_rows, l_rows);
+            mat = get_sub_matrix(rows, l_col, r_col);
+            comp_supp = get_comp(mat, rows);
+            comp = intersection_pairs(comp, comp_supp);
+            l_rows = red_pairs(comp);
+            if (!comp.empty()) {
+              if (j > 0) {
+                recomb.push_back(
+                    {comp, std::get<2>(matches_vec[i].basic_matches[j - 1])});
+                comp_back = comp;
+              }
+            } else {
+              if (!recomb.empty() && !comp_back.empty() &&
+                  recomb[recomb.size() - 1].second !=
+                      std::get<2>(matches_vec[i].basic_matches[j]))
                 recomb.push_back(
                     {comp_back, std::get<2>(matches_vec[i].basic_matches[j])});
               std::vector<unsigned int> v(this->height);
@@ -2499,35 +2697,9 @@ public:
                 comp_back = comp;
               }
             }
-          } else {
-            is_recomb = true;
-            if (!recomb.empty() && !comp_back.empty() &&
-                recomb[recomb.size() - 1].second !=
-                    std::get<2>(matches_vec[i].basic_matches[j]))
-              recomb.push_back(
-                  {comp_back, std::get<2>(matches_vec[i].basic_matches[j])});
-            std::vector<unsigned int> v(this->height);
-            std::iota(std::begin(v), std::end(v), 0);
-            mat = get_sub_matrix(v, l_col, r_col);
-            comp = get_comp(mat, v);
-            l_rows = red_pairs(comp);
-            if (!unsafe) {
-              if (!comp.empty() &&
-                  (recomb.empty() ||
-                   recomb[recomb.size() - 1].second != r_col)) {
-                recomb.push_back({comp, r_col});
-              }
-            } else {
-              unsafe_pos.push_back({l_col, r_col});
-            }
-            comp.clear();
-            if (j > 0) {
-              l_rows = matches_vec[i].haplos[j - 1];
-              comp = generate_pairs(l_rows);
-              comp_back = comp;
-            }
           }
         }
+
         j--;
         if (j == 0 && len_suff == 0) {
           if (!comp.empty() &&
@@ -3806,11 +3978,24 @@ public:
 
   std::vector<std::vector<unsigned int>>
   get_sub_matrix(std::vector<unsigned int> rows, unsigned int cb, unsigned ce) {
+    std::vector<std::vector<unsigned int>> submatrix;
+    submatrix.reserve(rows.size());
+
+    for (size_t row : rows) {
+      submatrix.push_back(slice_sd_vector(this->panel[row], cb, ce));
+    }
+
+    return submatrix;
+  }
+  std::vector<std::vector<unsigned int>>
+  get_sub_matrix2(std::vector<unsigned int> rows, unsigned int cb,
+                  unsigned ce) {
     std::vector<std::vector<unsigned int>> sub_m(
         rows.size(), std::vector<unsigned int>(ce - cb + 1));
     std::vector<std::string> cols;
     for (unsigned int i = cb; i <= ce; i++)
       cols.push_back(get_orig_col(i));
+
     unsigned int i = 0;
     for (auto col : cols) {
       for (unsigned int j = 0; j < rows.size(); j++) {
@@ -3820,7 +4005,6 @@ public:
     }
     return sub_m;
   }
-
   bool check_comp(const std::vector<unsigned int> &row1,
                   const std::vector<unsigned int> &row2) {
     if (row1.size() != row2.size())
