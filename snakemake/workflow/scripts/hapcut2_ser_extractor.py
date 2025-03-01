@@ -27,17 +27,17 @@ def main(argv):
             continue
         tokens[1] = tokens[1].strip()
         if tokens[0] == "switch rate":
-            res["switch error rate"] = float(tokens[1])
+            res["switch error rate"] = round(float(tokens[1]), 4)
         elif tokens[0] == "mismatch rate":
-            res["mismatch rate"] = float(tokens[1])
+            res["mismatch rate"] = round(float(tokens[1]), 4)
         elif tokens[0] == "flat rate":
-            res["flat rate"] = float(tokens[1])
+            res["flat rate"] = round(float(tokens[1]), 4)
         elif tokens[0] == "phased count":
             res["phased count"] = int(tokens[1])
         elif tokens[0] == "AN50":
-            res["AN50"] = float(tokens[1])
+            res["AN50"] = round(float(tokens[1]), 4)
         elif tokens[0] == "N50":
-            res["N50"] = float(tokens[1])
+            res["N50"] = round(float(tokens[1]), 4)
         elif tokens[0] == "num snps max blk":
             res["num snps max block"] = int(tokens[1])
         else:

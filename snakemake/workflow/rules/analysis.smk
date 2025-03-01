@@ -17,7 +17,7 @@ rule serMupbwt_u:
         os.path.join(bench_folder, "ser_hapcut2", "mupbwt_u", "mutate_{q}", "prediction.ser.txt"),
     shell:
         """
-        python workflow/scripts/calculate_haplotype_statistics.py -v1 {input.vcf} -v2 {input.ref} > {output}
+        python workflow/scripts/calculate_haplotype_statistics.py -v1 {input.vcf} -v2 {input.ref} -i > {output}
         """
 
 
@@ -29,6 +29,6 @@ rule serBeagle:
         os.path.join(bench_folder, "ser_hapcut2", "beagle", "mutate_{q}", "prediction.ser.txt"),
     shell:
         """
-        python workflow/scripts/calculate_haplotype_statistics.py -v1 {input.vcf} -v2 {input.ref} > {output}
+        python workflow/scripts/calculate_haplotype_statistics.py -v1 {input.vcf} -v2 {input.ref} -i > {output}
         """
 
