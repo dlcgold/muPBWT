@@ -17,11 +17,12 @@ rule extractTarget:
         bcftools view -Oz {input} > {output.refgz}
         bcftools index {output.refgz}
         bcftools query -l {input} > {params.s}
-        tail -n1 {params.s} > {params.t}
+        shuf -n 1 {params.s} > {params.t} 
+        #tail -n1 {params.s} > {params.t}
         bcftools view -S {params.t} {input} > {output.vcf}
         bcftools view -Oz {output.vcf} >  {output.vcfgz}
         bcftools index {output.vcfgz}
-        rm  {params.s}  {params.t}
+        #rm  {params.s}  {params.t}
         """
 
 rule createGenotype:
