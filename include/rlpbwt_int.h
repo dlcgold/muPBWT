@@ -2975,17 +2975,16 @@ public:
       std::vector<unsigned int> target_pos;
       for (auto d : data_t)
         target_pos.push_back(std::stoi(d[1]) - 1);
-      // for (auto r_comp : recomb) {
-      //   // if (r_comp.first.empty()) {
-      //   std::cout << "[ ";
-      //   for (auto c : r_comp.first) {
-      //     std::cout << "(" << c.first << ", " << c.second << ") ";
-      //   }
-      //   std::cout << ", " << r_comp.second << "]; " <<
-      //   queries[i][r_comp.second]
-      //             << " a\n";
-      //   // }
-      // }
+      for (auto r_comp : recomb) {
+        // if (r_comp.first.empty()) {
+        std::cout << "[ ";
+        for (auto c : r_comp.first) {
+          std::cout << "(" << c.first << ", " << c.second << ") ";
+        }
+        std::cout << ", " << r_comp.second << "]; " << queries[i][r_comp.second]
+                  << " a\n";
+        // }
+      }
 
       // std::cout << comp.size() << " " << recomb.size() << "\n";
       // for (auto c : comp) {
