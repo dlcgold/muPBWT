@@ -36,9 +36,9 @@ Options:
 If input and ref panels are the same we perform phasing, unless (the ref panel
 presents more variation sites) we try impute the target.
 
-Phase (not impute) `target_unphased.bcf` using `panel.bcf` as reference:
+Phase (not impute) `sample_data/target_unphased.vcf` using `sample_data/reference.vcf` as reference:
 ```shell
-./mupbwt -i sample_data/reference.vcf -r sample_data/reference.vcf -q sample_data/target_unphased.bcf -o target_phased.bcf -u
+./mupbwt -i sample_data/reference.vcf -r sample_data/reference.vcf -q sample_data/target_unphased.vcf -o target_phased.bcf -u
 ```
 
 
