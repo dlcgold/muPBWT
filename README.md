@@ -1,4 +1,4 @@
-# μ-PBWT with k-SMEMs
+# μ-PBWT Phasing
 Phase genotype with μ-PBWT.
 
 ## Build from source
