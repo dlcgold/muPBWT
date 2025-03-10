@@ -38,7 +38,7 @@ presents more variation sites) we try impute the target.
 
 Phase (not impute) `target_unphased.bcf` using `panel.bcf` as reference:
 ```shell
-./mupbwt -i panel.bcf -r panel.bcf -q target_unphased.bcf -o target_phased.bcf -u
+./mupbwt -i sample_data/reference.vcf -r sample_data/reference.vcf -q sample_data/target_unphased.bcf -o target_phased.bcf -u
 ```
 
 
