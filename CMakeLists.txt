@@ -1,35 +1,14 @@
-# cmake_minimum_required(VERSION 3.16)
-# project(muPBWT)
-
-# set(CMAKE_CXX_STANDARD 17)
-# find_package(OpenMP)
-# add_compile_options(-Wall -Wextra -pedantic -Ofast ${OpenMP_CXX_FLAGS})
-
-# # Configure thirdparty
-# set(CMAKE_INSTALL_INCLUDEDIR "include")
-
-# add_subdirectory(thirdparty)
-# link_libraries("-static")
-# add_executable(mupbwt mupbwt.cpp
-#         lib/utils.cpp include/utils.h
-#         include/exceptions.h
-#         include/phi_ds.h
-#         lib/ms.cpp include/ms.h
-#         lib/ms_k.cpp include/ms_k.h
-#         lib/ms_matches.cpp include/ms_matches.h
-#         lib/rl_column.cpp include/rl_column.h
-#         include/rlpbwt_int.h)
-
-# target_link_libraries(mupbwt sdsl divsufsort divsufsort64 htslib -lz ${OpenMP_CXX_LIBRARIES})
-
-# set(tool_dest "bin")
-# install(TARGETS mupbwt DESTINATION "${tool_dest}")
-
 cmake_minimum_required(VERSION 3.16)
 project(muPBWT)
 
 set(CMAKE_CXX_STANDARD 17)
-add_compile_options(-Wall -Wextra -pedantic -Ofast -fopenmp)
+find_package(OpenMP)
+add_compile_options(-Wall -Wextra -pedantic -Ofast ${OpenMP_CXX_FLAGS})
+
+# Configure thirdparty
+set(CMAKE_INSTALL_INCLUDEDIR "include")
+
+add_subdirectory(thirdparty)
 add_executable(mupbwt mupbwt.cpp
         lib/utils.cpp include/utils.h
         include/exceptions.h
@@ -40,7 +19,27 @@ add_executable(mupbwt mupbwt.cpp
         lib/rl_column.cpp include/rl_column.h
         include/rlpbwt_int.h)
 
-target_link_libraries(mupbwt -lhts -lsdsl -fopenmp)
+target_link_libraries(mupbwt sdsl divsufsort divsufsort64 htslib -lz ${OpenMP_CXX_LIBRARIES})
 
 set(tool_dest "bin")
 install(TARGETS mupbwt DESTINATION "${tool_dest}")
+
+# cmake_minimum_required(VERSION 3.16)
+# project(muPBWT)
+
+# set(CMAKE_CXX_STANDARD 17)
+# add_compile_options(-Wall -Wextra -pedantic -Ofast -fopenmp)
+# add_executable(mupbwt mupbwt.cpp
+#         lib/utils.cpp include/utils.h
+#         include/exceptions.h
+#         include/phi_ds.h
+#         lib/ms.cpp include/ms.h
+#         lib/ms_k.cpp include/ms_k.h
+#         lib/ms_matches.cpp include/ms_matches.h
+#         lib/rl_column.cpp include/rl_column.h
+#         include/rlpbwt_int.h)
+
+# target_link_libraries(mupbwt -lhts -lsdsl -fopenmp)
+
+# set(tool_dest "bin")
+# install(TARGETS mupbwt DESTINATION "${tool_dest}")
