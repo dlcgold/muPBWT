@@ -1,0 +1,11 @@
+url_path,views_total,views_unique
+/dlcgold/muPBWT,16,5
+/dlcgold/muPBWT/commits/main,4,1
+/dlcgold/muPBWT/pulls,3,2
+/dlcgold/muPBWT/tree/phase/sample_data,3,1
+/dlcgold/muPBWT/blob/phase/sample_data/reference.vcf,2,1
+/dlcgold/muPBWT/blob/phase/sample_data/target_unphased.vcf,2,1
+/dlcgold/muPBWT/commits/haps,2,1
+/dlcgold/muPBWT/pull/2,2,1
+/dlcgold/muPBWT/tree/haps,2,1
+/dlcgold/muPBWT/tree/k-smem,2,1
